@@ -244,7 +244,13 @@ export default function App() {
               </button>
             </div>
             <div className="w-px h-10 bg-hw-border mx-2 hidden md:block" />
-            <button className="p-3 glass-panel rounded-xl transition-all hover:text-hw-accent hover:border-hw-accent/30">
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={cn(
+                "p-3 glass-panel rounded-xl transition-all hover:text-hw-accent hover:border-hw-accent/30",
+                activeTab === 'settings' && "text-hw-accent border-hw-accent/30 bg-hw-accent/10"
+              )}
+            >
               <Settings className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-4 pl-2">
