@@ -13,6 +13,15 @@ export interface ElevationData {
   gradient: number;
 }
 
+export interface RouteStep {
+  distance: number;
+  duration: number;
+  type: number;
+  instruction: string;
+  name: string;
+  way_points: [number, number];
+}
+
 export interface RouteInfo {
   distance: number; // meters
   duration: number; // seconds
@@ -20,6 +29,7 @@ export interface RouteInfo {
   descent: number; // meters
   points: [number, number][]; // [lat, lng]
   elevationProfile: ElevationData[];
+  instructions: RouteStep[];
 }
 
 export interface POI {

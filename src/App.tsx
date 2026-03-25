@@ -103,6 +103,7 @@ export default function App() {
           points={points}
           route={route}
           showPOIs={showPOIs}
+          isNavigating={isNavigating}
           onAddPoint={handleAddPoint}
           onUpdatePoint={handleUpdatePoint}
           onRemovePoint={handleRemovePoint}
@@ -146,7 +147,7 @@ export default function App() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold tracking-tight">Навигация активна</h2>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Следование по маршруту</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Следование по маршруту • Нажмите на карту, чтобы добавить точку</p>
                     </div>
                   </div>
                   <button

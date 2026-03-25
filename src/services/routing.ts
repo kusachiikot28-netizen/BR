@@ -45,6 +45,15 @@ export async function fetchRoute(
     const feature = data.features[0];
     const geometry = feature.geometry.coordinates; // [lng, lat, alt]
     const properties = feature.properties;
+    const segments = properties.segments[0];
+    const instructions = segments.steps.map((step: any) => ({
+      distance: step.distance,
+      duration: step.duration,
+      type: step.type,
+      instruction: step.instruction,
+      name: step.name,
+      way_points: step.way_points,
+    }));
 
     const routePoints: [number, number][] = geometry.map((c: any) => [c[1], c[0]]);
     
@@ -70,6 +79,7 @@ export async function fetchRoute(
       descent: properties.descent || 0,
       points: routePoints,
       elevationProfile,
+      instructions,
     };
   } catch (error) {
     console.error('Routing failed:', error);
@@ -108,5 +118,6 @@ function getMockRoute(points: RoutePoint[]): RouteInfo {
     descent: 50,
     points: routePoints,
     elevationProfile,
+    instructions: [],
   };
 }

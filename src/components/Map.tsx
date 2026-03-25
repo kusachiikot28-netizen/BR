@@ -3,7 +3,13 @@ import L from 'leaflet';
 import { useEffect, useState } from 'react';
 import { RoutePoint, RouteInfo, POI } from '../types';
 import { fetchBikePOIs } from '../services/poi';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import 'leaflet/dist/leaflet.css';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 // Fix for default marker icons
 const icon = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
@@ -22,6 +28,7 @@ interface MapProps {
   points: RoutePoint[];
   route?: RouteInfo;
   showPOIs: boolean;
+  isNavigating?: boolean;
   onAddPoint: (point: RoutePoint) => void;
   onUpdatePoint: (index: number, point: RoutePoint) => void;
   onRemovePoint: (index: number) => void;
@@ -45,18 +52,19 @@ function MapEvents({ onAddPoint, onBoundsChange }: { onAddPoint: (point: RoutePo
   return null;
 }
 
-function ZoomToRoute({ route }: { route?: RouteInfo }) {
+function ZoomToRoute({ route, isNavigating }: { route?: RouteInfo, isNavigating?: boolean }) {
   const map = useMap();
   useEffect(() => {
-    if (route && route.points.length > 0) {
+    // Only auto-zoom if NOT navigating, to avoid jarring view changes while the user is interacting
+    if (!isNavigating && route && route.points.length > 0) {
       const bounds = L.latLngBounds(route.points);
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [route, map]);
+  }, [route, map, isNavigating]);
   return null;
 }
 
-export default function Map({ points, route, showPOIs, onAddPoint, onUpdatePoint, onRemovePoint }: MapProps) {
+export default function Map({ points, route, showPOIs, isNavigating, onAddPoint, onUpdatePoint, onRemovePoint }: MapProps) {
   const [center] = useState<[number, number]>([55.7558, 37.6173]); // Moscow default
   const [pois, setPois] = useState<POI[]>([]);
 
@@ -72,7 +80,7 @@ export default function Map({ points, route, showPOIs, onAddPoint, onUpdatePoint
   }, [showPOIs]);
 
   return (
-    <div className="w-full h-full relative">
+    <div className={cn("w-full h-full relative", isNavigating && "cursor-crosshair")}>
       <MapContainer
         center={center}
         zoom={13}
@@ -85,7 +93,7 @@ export default function Map({ points, route, showPOIs, onAddPoint, onUpdatePoint
         />
         
         <MapEvents onAddPoint={onAddPoint} onBoundsChange={handleBoundsChange} />
-        <ZoomToRoute route={route} />
+        <ZoomToRoute route={route} isNavigating={isNavigating} />
 
         {showPOIs && pois.map((poi) => (
           <CircleMarker

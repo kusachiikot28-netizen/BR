@@ -1,9 +1,14 @@
-import { Bike, MapPin, Trash2, Plus, Navigation, TrendingUp, Clock, Ruler, ChevronRight, Settings, Info, Coffee, Search, Cloud, Wind as WindIcon, FileText, Download } from 'lucide-react';
+import { 
+  Bike, MapPin, Trash2, Plus, Navigation, TrendingUp, Clock, Ruler, 
+  ChevronRight, Settings, Info, Coffee, Search, Cloud, Wind as WindIcon, 
+  FileText, Download, ArrowLeft, ArrowRight, ArrowUpLeft, ArrowUpRight, 
+  ArrowUp, RotateCw, LogOut, RefreshCw, Flag, Play, List, Map as MapIcon
+} from 'lucide-react';
 import { BikeType, RoutePoint, RouteInfo } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { searchLocation } from '../services/geocoding';
 import { WeatherInfo } from '../services/weather';
 import { exportToGPX } from '../services/export';
@@ -44,6 +49,7 @@ export default function Sidebar({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<RoutePoint[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [view, setView] = useState<'points' | 'instructions'>('points');
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -57,6 +63,26 @@ export default function Sidebar({
     onAddPoint(point);
     setSearchQuery('');
     setSearchResults([]);
+  };
+
+  const getInstructionIcon = (type: number) => {
+    switch (type) {
+      case 0: return <ArrowLeft className="w-3 h-3" />; // Left
+      case 1: return <ArrowRight className="w-3 h-3" />; // Right
+      case 2: return <ArrowLeft className="w-3 h-3" />; // Sharp left
+      case 3: return <ArrowRight className="w-3 h-3" />; // Sharp right
+      case 4: return <ArrowUpLeft className="w-3 h-3" />; // Slight left
+      case 5: return <ArrowUpRight className="w-3 h-3" />; // Slight right
+      case 6: return <ArrowUp className="w-3 h-3" />; // Straight
+      case 7: return <RotateCw className="w-3 h-3" />; // Enter roundabout
+      case 8: return <LogOut className="w-3 h-3" />; // Exit roundabout
+      case 9: return <RefreshCw className="w-3 h-3" />; // U-turn
+      case 10: return <Flag className="w-3 h-3" />; // Goal
+      case 11: return <Play className="w-3 h-3" />; // Depart
+      case 12: return <ArrowUpLeft className="w-3 h-3" />; // Keep left
+      case 13: return <ArrowUpRight className="w-3 h-3" />; // Keep right
+      default: return <Navigation className="w-3 h-3" />;
+    }
   };
   const bikeOptions: { label: string; value: BikeType }[] = [
     { label: 'Шоссейный', value: 'road' },
@@ -169,86 +195,148 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Route Points */}
+      {/* Route Content */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-thin scrollbar-thumb-[#2a2b2e]">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] text-gray-500 uppercase tracking-widest font-mono flex items-center gap-2">
-            <MapPin className="w-3 h-3" /> Маршрут
-          </label>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setView('points')}
+              className={cn(
+                "text-[10px] uppercase tracking-widest font-mono flex items-center gap-2 transition-colors",
+                view === 'points' ? "text-white font-bold" : "text-gray-500 hover:text-gray-300"
+              )}
+            >
+              <MapPin className="w-3 h-3" /> Точки
+            </button>
+            {route && (
+              <button 
+                onClick={() => setView('instructions')}
+                className={cn(
+                  "text-[10px] uppercase tracking-widest font-mono flex items-center gap-2 transition-colors",
+                  view === 'instructions' ? "text-white font-bold" : "text-gray-500 hover:text-gray-300"
+                )}
+              >
+                <List className="w-3 h-3" /> Инструкции
+              </button>
+            )}
+          </div>
           <button onClick={onClear} className="text-[10px] text-red-500 hover:underline uppercase tracking-widest font-mono">
             Очистить
           </button>
         </div>
 
         <div className="space-y-3 relative">
-          {/* Vertical line connecting points */}
-          {points.length > 1 && (
-            <div className="absolute left-[11px] top-4 bottom-4 w-[2px] bg-[#2a2b2e] z-0" />
-          )}
-
-          <AnimatePresence mode="popLayout">
-            {points.map((p, i) => (
+          <AnimatePresence mode="wait">
+            {view === 'points' ? (
               <motion.div
-                key={i}
-                layout
-                initial={{ opacity: 0, x: -20 }}
+                key="points"
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="flex items-center gap-3 group z-10"
+                exit={{ opacity: 0, x: 10 }}
+                className="space-y-3"
               >
-                <div className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 shadow-md",
-                  i === 0 ? "bg-green-600" : i === points.length - 1 ? "bg-red-600" : "bg-[#2a2b2e]"
-                )}>
-                  {i + 1}
-                </div>
-                <div className="flex-1 bg-[#1c1d21] border border-[#2a2b2e] rounded-md px-3 py-2 text-xs text-gray-300 truncate">
-                  {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
-                  {p.notes && (
-                    <div className="text-[8px] text-gray-500 mt-1 italic flex items-center gap-1">
-                      <FileText className="w-2 h-2" /> {p.notes}
+                {/* Vertical line connecting points */}
+                {points.length > 1 && (
+                  <div className="absolute left-[11px] top-4 bottom-4 w-[2px] bg-[#2a2b2e] z-0" />
+                )}
+
+                {points.map((p, i) => (
+                  <motion.div
+                    key={i}
+                    layout
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="flex items-center gap-3 group z-10"
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 shadow-md",
+                      i === 0 ? "bg-green-600" : i === points.length - 1 ? "bg-red-600" : "bg-[#2a2b2e]"
+                    )}>
+                      {i + 1}
                     </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1">
+                    <div className="flex-1 bg-[#1c1d21] border border-[#2a2b2e] rounded-md px-3 py-2 text-xs text-gray-300 truncate">
+                      {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
+                      {p.notes && (
+                        <div className="text-[8px] text-gray-500 mt-1 italic flex items-center gap-1">
+                          <FileText className="w-2 h-2" /> {p.notes}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => {
+                          const note = prompt('Заметка для этой точки:', p.notes || '');
+                          if (note !== null) onUpdatePoint(i, { ...p, notes: note });
+                        }}
+                        className="p-1 text-gray-500 hover:text-blue-500 transition-colors"
+                      >
+                        <FileText className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => onRemovePoint(i)}
+                        className="p-1 text-gray-500 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {points.length < 10 && (
                   <button
-                    onClick={() => {
-                      const note = prompt('Заметка для этой точки:', p.notes || '');
-                      if (note !== null) onUpdatePoint(i, { ...p, notes: note });
-                    }}
-                    className="p-1 text-gray-500 hover:text-blue-500 transition-colors"
+                    onClick={() => onAddPoint({ lat: 55.7558, lng: 37.6173 })}
+                    className="w-full py-3 border-2 border-dashed border-[#2a2b2e] rounded-lg flex items-center justify-center gap-2 text-gray-500 hover:text-blue-500 hover:border-blue-500/50 transition-all group"
                   >
-                    <FileText className="w-3 h-3" />
+                    <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-medium">Добавить точку</span>
                   </button>
+                )}
+
+                {points.length > 0 && !route && (
                   <button
-                    onClick={() => onRemovePoint(i)}
-                    className="p-1 text-gray-500 hover:text-red-500 transition-colors"
+                    onClick={onClear}
+                    className="w-full py-2 text-[10px] text-gray-500 hover:text-red-500 uppercase tracking-widest font-mono transition-colors"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    Очистить все точки
                   </button>
-                </div>
+                )}
               </motion.div>
-            ))}
+            ) : (
+              <motion.div
+                key="instructions"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="space-y-2"
+              >
+                {route?.instructions.map((step, i) => (
+                  <div 
+                    key={i}
+                    className="flex gap-3 p-3 bg-[#1c1d21] border border-[#2a2b2e] rounded-lg hover:border-gray-700 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-[#2a2b2e] flex items-center justify-center shrink-0 text-blue-400">
+                      {getInstructionIcon(step.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] text-gray-200 leading-tight mb-1">
+                        {step.instruction}
+                      </p>
+                      <div className="flex items-center gap-2 text-[9px] text-gray-500 font-mono uppercase tracking-wider">
+                        <span>{formatDistance(step.distance)}</span>
+                        {step.name && step.name !== '-' && (
+                          <>
+                            <span className="w-1 h-1 bg-gray-700 rounded-full" />
+                            <span className="truncate">{step.name}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
           </AnimatePresence>
-
-          {points.length < 10 && (
-            <button
-              onClick={() => onAddPoint({ lat: 55.7558, lng: 37.6173 })}
-              className="w-full py-3 border-2 border-dashed border-[#2a2b2e] rounded-lg flex items-center justify-center gap-2 text-gray-500 hover:text-blue-500 hover:border-blue-500/50 transition-all group"
-            >
-              <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-medium">Добавить точку</span>
-            </button>
-          )}
-
-          {points.length > 0 && !route && (
-            <button
-              onClick={onClear}
-              className="w-full py-2 text-[10px] text-gray-500 hover:text-red-500 uppercase tracking-widest font-mono transition-colors"
-            >
-              Очистить все точки
-            </button>
-          )}
         </div>
       </div>
 
