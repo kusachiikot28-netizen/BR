@@ -1,8 +1,11 @@
-import { Bike, MapPin, Trash2, Plus, Navigation, TrendingUp, Clock, Ruler, ChevronRight, Settings, Info, Coffee } from 'lucide-react';
+import { Bike, MapPin, Trash2, Plus, Navigation, TrendingUp, Clock, Ruler, ChevronRight, Settings, Info, Coffee, Search, Cloud, Wind as WindIcon, FileText } from 'lucide-react';
 import { BikeType, RoutePoint, RouteInfo } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useState } from 'react';
+import { searchLocation } from '../services/geocoding';
+import { WeatherInfo } from '../services/weather';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -13,6 +16,7 @@ interface SidebarProps {
   bikeType: BikeType;
   route?: RouteInfo;
   showPOIs: boolean;
+  weather: WeatherInfo | null;
   onAddPoint: (point: RoutePoint) => void;
   onUpdatePoint: (index: number, point: RoutePoint) => void;
   onRemovePoint: (index: number) => void;
@@ -27,6 +31,7 @@ export default function Sidebar({
   bikeType,
   route,
   showPOIs,
+  weather,
   onAddPoint,
   onUpdatePoint,
   onRemovePoint,
@@ -35,6 +40,23 @@ export default function Sidebar({
   onClear,
   onStartNavigation,
 }: SidebarProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<RoutePoint[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    const results = await searchLocation(searchQuery);
+    setSearchResults(results);
+    setIsSearching(false);
+  };
+
+  const handleSelectResult = (point: RoutePoint) => {
+    onAddPoint(point);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
   const bikeOptions: { label: string; value: BikeType }[] = [
     { label: 'Шоссейный', value: 'road' },
     { label: 'Горный', value: 'mountain' },
@@ -53,14 +75,62 @@ export default function Sidebar({
     <div className="w-80 h-full bg-[#151619] text-white flex flex-col border-r border-[#2a2b2e] shadow-2xl z-50">
       {/* Header */}
       <div className="p-6 border-b border-[#2a2b2e]">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
-            <Navigation className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
+              <Navigation className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">BikeRoute</h1>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Navigator v1.0</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">BikeRoute</h1>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Navigator v1.0</p>
+          {weather && (
+            <div className="flex flex-col items-end">
+              <div className="flex items-center gap-1 text-xs font-bold text-blue-400">
+                <Cloud className="w-3 h-3" /> {weather.temp}°C
+              </div>
+              <div className="flex items-center gap-1 text-[8px] text-gray-500 uppercase tracking-widest font-mono">
+                <WindIcon className="w-2 h-2" /> {weather.windSpeed} м/с
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Search Input */}
+        <div className="relative">
+          <div className="flex items-center gap-2 bg-[#1c1d21] border border-[#2a2b2e] rounded-md px-3 py-2">
+            <Search className="w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Поиск места..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="bg-transparent border-none outline-none text-xs text-gray-300 w-full placeholder:text-gray-600"
+            />
           </div>
+          
+          <AnimatePresence>
+            {searchResults.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-full left-0 right-0 mt-2 bg-[#1c1d21] border border-[#2a2b2e] rounded-md shadow-2xl z-[100] max-h-48 overflow-y-auto"
+              >
+                {searchResults.map((res, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectResult(res)}
+                    className="w-full text-left px-3 py-2 text-[10px] text-gray-400 hover:bg-[#2a2b2e] hover:text-white transition-colors border-b border-[#2a2b2e] last:border-none"
+                  >
+                    {res.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -133,13 +203,29 @@ export default function Sidebar({
                 </div>
                 <div className="flex-1 bg-[#1c1d21] border border-[#2a2b2e] rounded-md px-3 py-2 text-xs text-gray-300 truncate">
                   {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
+                  {p.notes && (
+                    <div className="text-[8px] text-gray-500 mt-1 italic flex items-center gap-1">
+                      <FileText className="w-2 h-2" /> {p.notes}
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => onRemovePoint(i)}
-                  className="p-2 text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => {
+                      const note = prompt('Заметка для этой точки:', p.notes || '');
+                      if (note !== null) onUpdatePoint(i, { ...p, notes: note });
+                    }}
+                    className="p-1 text-gray-500 hover:text-blue-500 transition-colors"
+                  >
+                    <FileText className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => onRemovePoint(i)}
+                    className="p-1 text-gray-500 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>

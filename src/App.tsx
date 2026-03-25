@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import ElevationProfile from './components/ElevationProfile';
 import { BikeType, RoutePoint, RouteInfo } from './types';
 import { fetchRoute } from './services/routing';
+import { fetchWeather, WeatherInfo } from './services/weather';
 import { motion, AnimatePresence } from 'motion/react';
 import { Navigation, Compass, Shield, Battery, Wind, AlertTriangle, X } from 'lucide-react';
 
@@ -14,6 +15,21 @@ export default function App() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPOIs, setShowPOIs] = useState(false);
+  const [weather, setWeather] = useState<WeatherInfo | null>(null);
+
+  // Load from LocalStorage on mount
+  useEffect(() => {
+    const savedPoints = localStorage.getItem('bikeRoute_points');
+    const savedBikeType = localStorage.getItem('bikeRoute_bikeType');
+    if (savedPoints) setPoints(JSON.parse(savedPoints));
+    if (savedBikeType) setBikeType(savedBikeType as BikeType);
+  }, []);
+
+  // Save to LocalStorage when points or bikeType change
+  useEffect(() => {
+    localStorage.setItem('bikeRoute_points', JSON.stringify(points));
+    localStorage.setItem('bikeRoute_bikeType', bikeType);
+  }, [points, bikeType]);
 
   // Update route when points or bikeType change
   useEffect(() => {
@@ -23,6 +39,10 @@ export default function App() {
         try {
           const newRoute = await fetchRoute(points, bikeType);
           setRoute(newRoute);
+          
+          // Fetch weather for the start point
+          const weatherData = await fetchWeather(points[0].lat, points[0].lng);
+          setWeather(weatherData);
         } catch (error) {
           console.error('Failed to update route:', error);
         } finally {
@@ -32,6 +52,7 @@ export default function App() {
       updateRoute();
     } else {
       setRoute(undefined);
+      setWeather(null);
     }
   }, [points, bikeType]);
 
@@ -65,6 +86,7 @@ export default function App() {
         bikeType={bikeType}
         route={route}
         showPOIs={showPOIs}
+        weather={weather}
         onAddPoint={handleAddPoint}
         onUpdatePoint={handleUpdatePoint}
         onRemovePoint={handleRemovePoint}

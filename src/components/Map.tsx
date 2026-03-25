@@ -117,11 +117,16 @@ export default function Map({ points, route, showPOIs, onAddPoint, onUpdatePoint
             }}
           >
             <Popup>
-              <div className="p-2">
-                <p className="font-bold">{i === 0 ? 'Старт' : i === points.length - 1 ? 'Финиш' : `Точка ${i}`}</p>
+              <div className="p-2 min-w-[120px]">
+                <p className="font-bold text-sm">{i === 0 ? 'Старт' : i === points.length - 1 ? 'Финиш' : `Точка ${i}`}</p>
+                {p.notes && (
+                  <p className="text-[10px] text-gray-500 italic mt-1 border-t border-gray-100 pt-1">
+                    {p.notes}
+                  </p>
+                )}
                 <button
                   onClick={() => onRemovePoint(i)}
-                  className="text-red-500 text-sm mt-1 hover:underline"
+                  className="text-red-500 text-[10px] mt-2 hover:underline uppercase tracking-widest font-mono"
                 >
                   Удалить
                 </button>

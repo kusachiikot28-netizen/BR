@@ -4,6 +4,7 @@ export interface RoutePoint {
   lat: number;
   lng: number;
   label?: string;
+  notes?: string;
 }
 
 export interface ElevationData {
