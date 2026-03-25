@@ -1,1 +1,75 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-hw-bg: #1a1c1e;
+  --color-hw-surface: #25282c;
+  --color-hw-card: #2d3136;
+  --color-hw-border: #383d44;
+  --color-hw-accent: #3b82f6;
+  --color-hw-accent-light: #60a5fa;
+  --color-hw-warning: #f59e0b;
+  --color-hw-danger: #ef4444;
+  --color-hw-success: #10b981;
+}
+
+@layer base {
+  body {
+    @apply bg-hw-bg text-white antialiased overflow-hidden;
+  }
+}
+
+@layer utilities {
+  .hw-card {
+    @apply bg-hw-card border border-hw-border rounded-xl shadow-lg;
+  }
+  
+  .hw-button {
+    @apply bg-hw-surface border border-hw-border rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:bg-hw-border active:scale-95;
+  }
+
+  .hw-button-primary {
+    @apply bg-hw-accent border-hw-accent-light text-white hover:bg-hw-accent-light;
+  }
+
+  .hw-label {
+    @apply text-[10px] text-gray-400 uppercase tracking-[0.15em] font-mono font-bold;
+  }
+
+  .hw-value {
+    @apply text-sm font-mono font-medium text-white;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .map-dark-filter .leaflet-tile-pane {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+  }
+
+  .leaflet-popup-content-wrapper {
+    background-color: var(--color-hw-card) !important;
+    color: white !important;
+    border: 1px solid var(--color-hw-border) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .leaflet-popup-tip {
+    background-color: var(--color-hw-card) !important;
+    border: 1px solid var(--color-hw-border) !important;
+  }
+
+  .leaflet-container {
+    background-color: var(--color-hw-bg) !important;
+  }
+}

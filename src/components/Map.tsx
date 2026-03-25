@@ -5,7 +5,7 @@ import { RoutePoint, RouteInfo, POI } from '../types';
 import { fetchBikePOIs } from '../services/poi';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { LocateFixed } from 'lucide-react';
+import { LocateFixed, Map as MapIcon } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 function cn(...inputs: ClassValue[]) {
@@ -25,9 +25,15 @@ const DefaultIcon = L.icon({
 
 const UserIcon = L.divIcon({
   className: 'user-location-marker',
-  html: `<div class="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-lg animate-pulse"></div>`,
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
+  html: `
+    <div class="relative flex items-center justify-center">
+      <div class="absolute w-8 h-8 bg-hw-accent/20 rounded-full animate-ping"></div>
+      <div class="absolute w-6 h-6 bg-hw-accent/40 rounded-full animate-pulse"></div>
+      <div class="w-3 h-3 bg-hw-accent border-2 border-white rounded-full shadow-lg z-10"></div>
+    </div>
+  `,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -64,16 +70,24 @@ function MapEvents({ onAddPoint, onBoundsChange }: { onAddPoint: (point: RoutePo
 
 function ZoomToRoute({ route, selectedRouteIndex, isNavigating }: { route?: RouteInfo, selectedRouteIndex: number, isNavigating?: boolean }) {
   const map = useMap();
+  const [hasInitialZoom, setHasInitialZoom] = useState(false);
+
   useEffect(() => {
-    // Only auto-zoom if NOT navigating, to avoid jarring view changes while the user is interacting
-    if (!isNavigating && route && route.points.length > 0) {
+    if (!route) {
+      setHasInitialZoom(false);
+      return;
+    }
+
+    // Only auto-zoom once when the first route is loaded
+    if (!isNavigating && route && route.points.length > 0 && !hasInitialZoom) {
       const currentRoute = (route.alternatives && selectedRouteIndex > 0) 
         ? route.alternatives[selectedRouteIndex - 1] 
         : route;
       const bounds = L.latLngBounds(currentRoute.points);
       map.fitBounds(bounds, { padding: [50, 50] });
+      setHasInitialZoom(true);
     }
-  }, [route, selectedRouteIndex, map, isNavigating]);
+  }, [route, selectedRouteIndex, map, isNavigating, hasInitialZoom]);
   return null;
 }
 
@@ -96,7 +110,7 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) {
-      alert("Геолокация не поддерживается вашим браузером");
+      alert("Geolocation is not supported by your browser");
       return;
     }
 
@@ -109,8 +123,8 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
         }
       },
       (error) => {
-        console.error("Ошибка геолокации:", error);
-        alert("Не удалось определить ваше местоположение");
+        console.error("Geolocation error:", error);
+        alert("Failed to determine your location");
       }
     );
   }, [mapInstance]);
@@ -120,32 +134,32 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
       <MapContainer
         center={center}
         zoom={13}
-        className="w-full h-full"
+        className="w-full h-full map-dark-filter"
         zoomControl={false}
         ref={setMapInstance}
       >
         <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="Стандартная">
+          <LayersControl.BaseLayer checked name="Стандарт">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
           </LayersControl.BaseLayer>
           
-          <LayersControl.BaseLayer name="Велосипедная (CyclOSM)">
+          <LayersControl.BaseLayer name="Велосипед (CyclOSM)">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.cyclosm.org">CyclOSM</a>'
               url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
             />
           </LayersControl.BaseLayer>
-
+ 
           <LayersControl.BaseLayer name="Спутник">
             <TileLayer
               attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             />
           </LayersControl.BaseLayer>
-
+ 
           <LayersControl.BaseLayer name="Рельеф (OpenTopoMap)">
             <TileLayer
               attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
@@ -168,12 +182,12 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
             key={poi.id}
             center={[poi.lat, poi.lng]}
             radius={6}
-            pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.6 }}
+            pathOptions={{ color: 'var(--color-hw-accent)', fillColor: 'var(--color-hw-accent)', fillOpacity: 0.6 }}
           >
             <Popup>
               <div className="p-1">
-                <p className="font-bold text-xs">{poi.name || 'Вело-точка'}</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">{poi.type}</p>
+                <p className="font-bold text-xs">{poi.name || 'Велоточка'}</p>
+                <p className="hw-label">{poi.type}</p>
               </div>
             </Popup>
           </CircleMarker>
@@ -196,13 +210,13 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
               <div className="p-2 min-w-[120px]">
                 <p className="font-bold text-sm">{i === 0 ? 'Старт' : i === points.length - 1 ? 'Финиш' : `Точка ${i}`}</p>
                 {p.notes && (
-                  <p className="text-[10px] text-gray-500 italic mt-1 border-t border-gray-100 pt-1">
+                  <p className="text-[10px] text-gray-500 italic mt-1 border-t border-hw-border pt-1">
                     {p.notes}
                   </p>
                 )}
                 <button
                   onClick={() => onRemovePoint(i)}
-                  className="text-red-500 text-[10px] mt-2 hover:underline uppercase tracking-widest font-mono"
+                  className="text-hw-danger text-[10px] mt-2 hover:underline uppercase font-bold tracking-widest font-mono"
                 >
                   Удалить
                 </button>
@@ -221,7 +235,7 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
                 <Polyline
                   key={`alt-${idx}`}
                   positions={alt.points}
-                  color={isSelected ? "#3b82f6" : "#6b7280"}
+                  color={isSelected ? "var(--color-hw-accent)" : "#6b7280"}
                   weight={isSelected ? 6 : 4}
                   opacity={isSelected ? 0.9 : 0.4}
                   eventHandlers={{
@@ -236,7 +250,7 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
             {/* Render main route */}
             <Polyline
               positions={route.points}
-              color={selectedRouteIndex === 0 ? "#3b82f6" : "#6b7280"}
+              color={selectedRouteIndex === 0 ? "var(--color-hw-accent)" : "#6b7280"}
               weight={selectedRouteIndex === 0 ? 6 : 4}
               opacity={selectedRouteIndex === 0 ? 0.9 : 0.4}
               eventHandlers={{
@@ -249,14 +263,34 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
         )}
       </MapContainer>
 
-      {/* Location Button */}
-      <button
-        onClick={handleLocate}
-        className="absolute bottom-6 right-6 w-12 h-12 bg-[#151619]/90 backdrop-blur-md border border-[#2a2b2e] rounded-full flex items-center justify-center text-blue-500 shadow-2xl hover:bg-[#1c1d21] transition-all z-50 group"
-        title="Мое местоположение"
-      >
-        <LocateFixed className="w-5 h-5 group-hover:scale-110 transition-transform" />
-      </button>
+      {/* Map Controls */}
+      <div className="absolute bottom-24 md:bottom-6 right-6 flex flex-col gap-3 z-[1004]">
+        {route && (
+          <button
+            onClick={() => {
+              if (mapInstance && route) {
+                const currentRoute = (route.alternatives && selectedRouteIndex > 0) 
+                  ? route.alternatives[selectedRouteIndex - 1] 
+                  : route;
+                const bounds = L.latLngBounds(currentRoute.points);
+                mapInstance.fitBounds(bounds, { padding: [50, 50] });
+              }
+            }}
+            className="w-12 h-12 hw-card flex items-center justify-center text-hw-accent shadow-2xl hover:bg-hw-surface transition-all group"
+            title="Показать весь маршрут"
+          >
+            <MapIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          </button>
+        )}
+        
+        <button
+          onClick={handleLocate}
+          className="w-12 h-12 hw-card flex items-center justify-center text-hw-accent shadow-2xl hover:bg-hw-surface transition-all group"
+          title="Мое местоположение"
+        >
+          <LocateFixed className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        </button>
+      </div>
     </div>
   );
 }

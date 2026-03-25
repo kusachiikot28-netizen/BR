@@ -42,15 +42,16 @@ export default function ElevationProfile({ data, instructions }: ElevationProfil
     <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="absolute bottom-6 left-6 right-6 md:left-[344px] md:right-6 h-36 md:h-48 bg-[#151619]/90 backdrop-blur-md border border-[#2a2b2e] rounded-2xl p-4 md:p-6 shadow-2xl z-40"
+      className="absolute bottom-24 md:bottom-6 left-6 right-6 md:left-[344px] md:right-6 h-36 md:h-48 hw-card p-4 md:p-6 shadow-2xl z-[1006]"
     >
       <div className="flex items-center justify-between mb-2 md:mb-4">
-        <h3 className="text-[10px] text-gray-500 uppercase tracking-widest font-mono flex items-center gap-2">
+        <h3 className="hw-label flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-hw-accent animate-pulse" />
           Профиль высот
         </h3>
-        <div className="flex gap-2 md:gap-4 text-[10px] text-gray-400 font-mono uppercase tracking-widest">
-          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-blue-500 rounded-full" /> <span className="hidden xs:inline">Высота</span></span>
-          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-red-500 rounded-full" /> <span className="hidden xs:inline">Повороты</span></span>
+        <div className="flex gap-2 md:gap-4 text-[10px] text-gray-500 font-mono uppercase tracking-widest">
+          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-hw-accent rounded-full" /> <span className="hidden xs:inline">Высота</span></span>
+          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-hw-danger rounded-full" /> <span className="hidden xs:inline">Повороты</span></span>
         </div>
       </div>
 
@@ -59,23 +60,23 @@ export default function ElevationProfile({ data, instructions }: ElevationProfil
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorElev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                <stop offset="5%" stopColor="var(--color-hw-accent)" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="var(--color-hw-accent)" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2a2b2e" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hw-border)" vertical={false} />
             <XAxis
               dataKey="distance"
               tickFormatter={formatX}
-              stroke="#4b5563"
-              fontSize={10}
+              stroke="var(--color-hw-label)"
+              fontSize={9}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
               tickFormatter={formatY}
-              stroke="#4b5563"
-              fontSize={10}
+              stroke="var(--color-hw-label)"
+              fontSize={9}
               tickLine={false}
               axisLine={false}
               domain={['auto', 'auto']}
@@ -90,21 +91,21 @@ export default function ElevationProfile({ data, instructions }: ElevationProfil
                   const marker = turnMarkers.find(m => m && Math.abs(m.x - dist) < 50);
 
                   return (
-                    <div className="bg-[#1c1d21] border border-[#2a2b2e] rounded-lg p-3 shadow-2xl min-w-[150px]">
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono mb-2">
+                    <div className="hw-card p-3 shadow-2xl min-w-[150px] border-hw-accent/30">
+                      <p className="hw-label mb-2">
                         {formatX(dist)}
                       </p>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-gray-400">Высота:</span>
+                        <span className="text-[10px] text-gray-500">Высота:</span>
                         <span className="text-xs font-bold text-white">{formatY(elev as number)}</span>
                       </div>
                       {marker && (
-                        <div className="mt-2 pt-2 border-t border-[#2a2b2e]">
+                        <div className="mt-2 pt-2 border-t border-hw-border">
                           <div className="flex items-center gap-2 mb-1">
-                            <div className="w-5 h-5 rounded bg-blue-600/20 flex items-center justify-center text-blue-400">
+                            <div className="w-5 h-5 rounded bg-hw-accent/20 flex items-center justify-center text-hw-accent">
                               {getInstructionIcon(marker.type)}
                             </div>
-                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Маневр</span>
+                            <span className="text-[10px] font-bold text-hw-accent uppercase tracking-wider">Манёвр</span>
                           </div>
                           <p className="text-[11px] text-gray-200 leading-tight">
                             {marker.instruction}
@@ -120,7 +121,7 @@ export default function ElevationProfile({ data, instructions }: ElevationProfil
             <Area
               type="monotone"
               dataKey="elevation"
-              stroke="#3b82f6"
+              stroke="var(--color-hw-accent)"
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorElev)"
@@ -132,7 +133,7 @@ export default function ElevationProfile({ data, instructions }: ElevationProfil
                 x={m.x}
                 y={m.y}
                 r={4}
-                fill="#ef4444"
+                fill="var(--color-hw-danger)"
                 stroke="#fff"
                 strokeWidth={1}
               />
