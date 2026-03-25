@@ -7,12 +7,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../../lib/utils';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Toggle } from '../ui/Toggle';
 
 type SettingSectionId = 'account' | 'devices' | 'maps' | 'navigation' | 'display' | 'privacy' | 'notifications' | 'about';
 
@@ -98,31 +97,20 @@ export default function SettingsScreen() {
   };
 
   const renderToggle = (label: string, desc: string, value: boolean, onChange: (v: boolean) => void) => (
-    <div className="flex items-center justify-between p-4 glass-panel rounded-2xl border-white/5 hover:border-hw-accent/20 transition-all">
+    <Card className="flex items-center justify-between p-4 hover:border-primary/20 transition-all">
       <div className="space-y-0.5">
-        <p className="text-sm font-bold uppercase tracking-tight text-white/90">{label}</p>
-        <p className="text-[10px] text-white/40 leading-tight">{desc}</p>
+        <p className="text-sm font-bold uppercase tracking-tight text-text-primary">{label}</p>
+        <p className="text-[10px] text-text-secondary leading-tight">{desc}</p>
       </div>
-      <button 
-        onClick={() => onChange(!value)}
-        className={cn(
-          "w-12 h-6 rounded-full relative transition-all duration-300",
-          value ? "bg-hw-accent shadow-[0_0_15px_rgba(0,242,255,0.4)]" : "bg-white/10"
-        )}
-      >
-        <div className={cn(
-          "absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300",
-          value ? "left-7" : "left-1"
-        )} />
-      </button>
-    </div>
+      <Toggle checked={value} onCheckedChange={onChange} />
+    </Card>
   );
 
   const renderSlider = (label: string, value: number, min: number, max: number, unit: string, onChange: (v: number) => void) => (
-    <div className="space-y-3 p-4 glass-panel rounded-2xl border-white/5">
+    <Card className="space-y-3 p-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm font-bold uppercase tracking-tight text-white/90">{label}</p>
-        <span className="text-xs font-mono font-black text-hw-accent">{value}{unit}</span>
+        <p className="text-sm font-bold uppercase tracking-tight text-text-primary">{label}</p>
+        <span className="text-xs font-bold text-primary">{value}{unit}</span>
       </div>
       <input 
         type="range" 
@@ -130,29 +118,28 @@ export default function SettingsScreen() {
         max={max} 
         value={value} 
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-hw-accent"
+        className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
       />
-    </div>
+    </Card>
   );
 
   const renderSelect = (label: string, options: { id: string, label: string }[], value: string, onChange: (v: string) => void) => (
-    <div className="space-y-3 p-4 glass-panel rounded-2xl border-white/5">
-      <p className="text-sm font-bold uppercase tracking-tight text-white/90">{label}</p>
+    <Card className="space-y-3 p-4">
+      <p className="text-sm font-bold uppercase tracking-tight text-text-primary">{label}</p>
       <div className="flex flex-wrap gap-2">
         {options.map(opt => (
-          <button
+          <Button
             key={opt.id}
+            variant={value === opt.id ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => onChange(opt.id)}
-            className={cn(
-              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-              value === opt.id ? "bg-hw-accent text-hw-bg shadow-lg shadow-hw-accent/20" : "bg-white/5 text-white/40 hover:bg-white/10"
-            )}
+            className="text-[10px] font-bold uppercase tracking-widest"
           >
             {opt.label}
-          </button>
+          </Button>
         ))}
       </div>
-    </div>
+    </Card>
   );
 
   const sections = [
@@ -162,43 +149,46 @@ export default function SettingsScreen() {
       icon: <User className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <div className="hw-card p-6 flex items-center gap-6">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-hw-accent to-hw-accent/20 p-0.5">
-              <div className="w-full h-full rounded-[22px] bg-hw-bg flex items-center justify-center overflow-hidden">
+          <Card className="p-6 flex items-center gap-6">
+            <div className="w-20 h-20 rounded-3xl bg-primary/10 p-0.5 border border-primary/20">
+              <div className="w-full h-full rounded-[22px] bg-surface flex items-center justify-center overflow-hidden">
                 <img src="https://picsum.photos/seed/user/80/80" alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-black uppercase tracking-tight italic text-white">{settings.userName}</h3>
-              <p className="text-xs text-white/40 font-mono">{settings.userEmail}</p>
-              <button className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-hw-accent hover:text-hw-accent-light transition-colors">
-                <Edit3 className="w-3 h-3" /> Редактировать профиль
-              </button>
+              <h3 className="text-xl font-bold uppercase tracking-tight text-text-primary">{settings.userName}</h3>
+              <p className="text-xs text-text-secondary font-mono">{settings.userEmail}</p>
+              <Button variant="text" size="sm" className="mt-3 p-0 h-auto text-primary hover:text-primary/80">
+                <Edit3 className="w-3 h-3 mr-2" /> Редактировать профиль
+              </Button>
             </div>
-          </div>
+          </Card>
           
-          <div className="p-4 glass-panel rounded-2xl flex items-center justify-between">
+          <Card className="p-4 flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-hw-label">Статус синхронизации</p>
-              <p className="text-xs text-white/80">{isSyncing ? 'Синхронизация...' : settings.syncStatus}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Статус синхронизации</p>
+              <p className="text-xs text-text-primary">{isSyncing ? 'Синхронизация...' : settings.syncStatus}</p>
             </div>
-            <button 
+            <Button 
+              variant="secondary"
+              size="sm"
               onClick={handleSyncNow}
               disabled={isSyncing}
-              className="hw-button h-10 px-4 glass-panel hover:bg-hw-accent/10 text-hw-accent disabled:opacity-50"
+              className="h-10 px-4"
             >
-              <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} /> 
+              <RefreshCw className={cn("w-4 h-4 mr-2", isSyncing && "animate-spin")} /> 
               {isSyncing ? 'Ждите' : 'Синхронизировать'}
-            </button>
-          </div>
+            </Button>
+          </Card>
 
-          <button 
+          <Button 
+            variant="secondary"
             onClick={() => handleAction('Выйти из аккаунта?', () => {})}
-            className="w-full p-4 glass-panel rounded-2xl flex items-center justify-center gap-3 text-hw-danger hover:bg-hw-danger/10 transition-all border-hw-danger/20"
+            className="w-full p-6 text-error border-error/20 hover:bg-error/5"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="text-xs font-black uppercase tracking-widest">Выйти из системы</span>
-          </button>
+            <LogOut className="w-5 h-5 mr-3" />
+            <span className="text-xs font-bold uppercase tracking-widest">Выйти из системы</span>
+          </Button>
         </div>
       )
     },
@@ -211,37 +201,37 @@ export default function SettingsScreen() {
           {renderToggle('Поиск устройств', 'Bluetooth / ANT+ сканирование', settings.searchDevices, (v) => updateSetting('searchDevices', v))}
           
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-hw-label px-2">Подключенные датчики</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-2">Подключенные датчики</p>
             {[
               { label: 'Скорость/Каденс', value: 'Wahoo BlueSC', status: 'connected', icon: <Zap className="w-4 h-4" /> },
               { label: 'Пульсометр', value: 'Garmin HRM-Dual', status: 'connected', icon: <Activity className="w-4 h-4" /> },
               { label: 'Мощность', value: 'Не подключено', status: 'disconnected', icon: <Zap className="w-4 h-4" /> }
             ].map(dev => (
-              <div key={dev.label} className="p-4 glass-panel rounded-2xl flex items-center justify-between group">
+              <Card key={dev.label} className="p-4 flex items-center justify-between group">
                 <div className="flex items-center gap-4">
-                  <div className={cn("p-2 rounded-lg bg-white/5", dev.status === 'connected' ? "text-hw-accent" : "text-white/20")}>
+                  <div className={cn("p-2 rounded-lg bg-surface border border-border", dev.status === 'connected' ? "text-primary" : "text-text-secondary")}>
                     {dev.icon}
                   </div>
                   <div>
-                    <p className="text-sm font-bold uppercase tracking-tight text-white/90">{dev.label}</p>
-                    <p className="text-[10px] text-white/40">{dev.value}</p>
+                    <p className="text-sm font-bold uppercase tracking-tight text-text-primary">{dev.label}</p>
+                    <p className="text-[10px] text-text-secondary">{dev.value}</p>
                   </div>
                 </div>
-                <button className="text-[10px] font-black uppercase tracking-widest text-hw-accent/60 hover:text-hw-accent">
+                <Button variant="text" size="sm" className="text-primary hover:text-primary/80">
                   {dev.status === 'connected' ? 'Отключить' : 'Подключить'}
-                </button>
-              </div>
+                </Button>
+              </Card>
             ))}
             {isScanning && (
-              <div className="p-4 glass-panel rounded-2xl flex items-center gap-4 border-hw-accent/30 animate-pulse">
-                <div className="w-4 h-4 border-2 border-hw-accent border-t-transparent rounded-full animate-spin" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-hw-accent">Поиск устройств...</span>
-              </div>
+              <Card className="p-4 flex items-center gap-4 border-primary/30 animate-pulse">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Поиск устройств...</span>
+              </Card>
             )}
             <button 
               onClick={handleScanNow}
               disabled={isScanning}
-              className="w-full p-4 border border-dashed border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-hw-accent hover:border-hw-accent/40 transition-all disabled:opacity-50"
+              className="w-full p-4 border border-dashed border-border rounded-2xl text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-primary hover:border-primary/40 transition-all disabled:opacity-50"
             >
               {isScanning ? 'Сканирование...' : 'Сканировать новые устройства'}
             </button>
@@ -262,7 +252,7 @@ export default function SettingsScreen() {
       content: (
         <div className="space-y-6">
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-hw-label px-2">Слой по умолчанию</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary px-2">Слой по умолчанию</p>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { id: 'osm', label: 'OSM Standard', img: 'https://picsum.photos/seed/osm/120/80' },
@@ -275,37 +265,38 @@ export default function SettingsScreen() {
                   onClick={() => updateSetting('defaultLayer', layer.id)}
                   className={cn(
                     "relative rounded-2xl overflow-hidden aspect-[3/2] border-2 transition-all",
-                    settings.defaultLayer === layer.id ? "border-hw-accent shadow-[0_0_20px_rgba(0,242,255,0.2)]" : "border-transparent opacity-60 hover:opacity-100"
+                    settings.defaultLayer === layer.id ? "border-primary shadow-lg" : "border-transparent opacity-60 hover:opacity-100"
                   )}
                 >
                   <img src={layer.img} alt={layer.label} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                  <span className="absolute bottom-2 left-3 text-[8px] font-black uppercase tracking-widest text-white">{layer.label}</span>
+                  <span className="absolute bottom-2 left-3 text-[8px] font-bold uppercase tracking-widest text-white">{layer.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="p-4 glass-panel rounded-2xl flex items-center justify-between">
+          <Card className="p-4 flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-sm font-bold uppercase tracking-tight text-white/90">Офлайн-карты</p>
-              <p className="text-[10px] text-white/40">Занято: {settings.offlineRegions}</p>
+              <p className="text-sm font-bold uppercase tracking-tight text-text-primary">Офлайн-карты</p>
+              <p className="text-[10px] text-text-secondary">Занято: {settings.offlineRegions}</p>
             </div>
-            <button className="hw-button h-10 px-4 glass-panel hover:bg-hw-accent/10 text-hw-accent">
+            <Button variant="secondary" size="sm" className="h-10 px-4">
               Управление
-            </button>
-          </div>
+            </Button>
+          </Card>
 
-          <button 
+          <Button 
+            variant="secondary"
             onClick={() => handleAction('Очистить кэш тайлов?', () => {})}
-            className="w-full p-4 glass-panel rounded-2xl flex items-center justify-between text-white/60 hover:text-white transition-all"
+            className="w-full p-4 flex items-center justify-between text-text-secondary hover:text-text-primary"
           >
             <div className="flex items-center gap-3">
               <Database className="w-4 h-4" />
-              <span className="text-xs font-black uppercase tracking-widest">Очистить кэш</span>
+              <span className="text-xs font-bold uppercase tracking-widest">Очистить кэш</span>
             </div>
             <span className="text-[10px] font-mono opacity-40">124 МБ</span>
-          </button>
+          </Button>
         </div>
       )
     },
@@ -329,7 +320,7 @@ export default function SettingsScreen() {
 
           {renderSlider('Максимальный градиент', settings.maxGradient, 5, 25, '%', (v) => updateSetting('maxGradient', v))}
 
-          <div className="space-y-4 pt-4 border-t border-white/5">
+          <div className="space-y-4 pt-4 border-t border-border">
             {renderToggle('Голосовые подсказки', 'Озвучивание маршрута', settings.voicePrompts, (v) => updateSetting('voicePrompts', v))}
             {settings.voicePrompts && (
               <div className="pl-4 space-y-4">
@@ -337,20 +328,20 @@ export default function SettingsScreen() {
                   { id: 'all', label: 'Все' },
                   { id: 'warnings', label: 'Только важные' }
                 ], settings.voiceMode, (v) => updateSetting('voiceMode', v))}
-                <button className="w-full p-3 glass-panel rounded-xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-white/60">
+                <Button variant="secondary" className="w-full p-4 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                   <span>Голос: Системный (RU)</span>
                   <ChevronRight className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
-          <div className="space-y-4 pt-4 border-t border-white/5">
+          <div className="space-y-4 pt-4 border-t border-border">
             {renderToggle('Авто-перестроение', 'Автоматически при уходе с пути', settings.autoReroute, (v) => updateSetting('autoReroute', v))}
             {settings.autoReroute && renderSlider('Тайм-аут подтверждения', settings.rerouteTimeout, 0, 30, ' сек', (v) => updateSetting('rerouteTimeout', v))}
           </div>
 
-          <div className="space-y-4 pt-4 border-t border-white/5">
+          <div className="space-y-4 pt-4 border-t border-border">
             {renderToggle('Напоминания о ТО', 'По пробегу', settings.maintenanceReminder, (v) => updateSetting('maintenanceReminder', v))}
             {settings.maintenanceReminder && renderSlider('Интервал ТО', settings.maintenanceInterval, 100, 2000, ' км', (v) => updateSetting('maintenanceInterval', v))}
           </div>
@@ -411,13 +402,14 @@ export default function SettingsScreen() {
           {renderToggle('Автосохранение поездок', 'Сохранять в историю после финиша', settings.autoSave, (v) => updateSetting('autoSave', v))}
           {renderToggle('Анонимная статистика', 'Помогает улучшать приложение', settings.anonStats, (v) => updateSetting('anonStats', v))}
 
-          <button 
+          <Button 
+            variant="secondary"
             onClick={() => handleAction('Очистить историю поездок?', () => {})}
-            className="w-full p-4 glass-panel rounded-2xl flex items-center justify-center gap-3 text-hw-danger hover:bg-hw-danger/10 transition-all border-hw-danger/20"
+            className="w-full p-6 text-error border-error/20 hover:bg-error/5"
           >
-            <Trash2 className="w-5 h-5" />
-            <span className="text-xs font-black uppercase tracking-widest">Очистить историю</span>
-          </button>
+            <Trash2 className="w-5 h-5 mr-3" />
+            <span className="text-xs font-bold uppercase tracking-widest">Очистить историю</span>
+          </Button>
         </div>
       )
     },
@@ -430,16 +422,16 @@ export default function SettingsScreen() {
           {renderToggle('Push-уведомления', 'Системные оповещения', settings.pushEnabled, (v) => updateSetting('pushEnabled', v))}
           {renderToggle('Уведомления о ТО', 'Напоминания о сервисе', settings.reminderEnabled, (v) => updateSetting('reminderEnabled', v))}
           
-          <div className="space-y-3 p-4 glass-panel rounded-2xl border-white/5">
-            <p className="text-sm font-bold uppercase tracking-tight text-white/90">Звук уведомления</p>
-            <button className="w-full flex items-center justify-between p-3 bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60">
+          <Card className="space-y-3 p-4">
+            <p className="text-sm font-bold uppercase tracking-tight text-text-primary">Звук уведомления</p>
+            <Button variant="secondary" className="w-full flex items-center justify-between p-4 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
               <div className="flex items-center gap-3">
                 <Volume2 className="w-4 h-4" />
                 <span>Default System Sound</span>
               </div>
               <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+            </Button>
+          </Card>
         </div>
       )
     },
@@ -449,18 +441,18 @@ export default function SettingsScreen() {
       icon: <Info className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <div className="hw-card p-6 flex flex-col items-center text-center space-y-4">
-            <div className="w-20 h-20 bg-hw-accent/10 rounded-[2rem] flex items-center justify-center text-hw-accent shadow-[0_0_30px_rgba(0,242,255,0.1)]">
+          <Card className="p-8 flex flex-col items-center text-center space-y-4">
+            <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary shadow-lg">
               <Bike className="w-10 h-10" />
             </div>
             <div>
-              <h3 className="text-2xl font-black uppercase tracking-tighter italic text-white">VeloRoute PRO</h3>
-              <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest mt-1">Версия 2.7.4 (Build 2027.03)</p>
+              <h3 className="text-2xl font-bold uppercase tracking-tighter text-text-primary">VeloRoute PRO</h3>
+              <p className="text-[10px] font-mono text-text-secondary uppercase tracking-widest mt-1">Версия 2.7.4 (Build 2027.03)</p>
             </div>
-            <p className="text-[10px] text-white/30 leading-relaxed max-w-[200px]">
+            <p className="text-[10px] text-text-secondary leading-relaxed max-w-[200px]">
               Открытая лицензия GPL v3. Разработано для тактической навигации.
             </p>
-          </div>
+          </Card>
 
           <div className="space-y-2">
             {[
@@ -468,40 +460,40 @@ export default function SettingsScreen() {
               { label: 'Политика конфиденциальности', icon: <Lock className="w-4 h-4" />, link: '#' },
               { label: 'Сообщить об ошибке', icon: <Mail className="w-4 h-4" />, link: '#' }
             ].map(item => (
-              <a key={item.label} href={item.link} className="p-4 glass-panel rounded-2xl flex items-center justify-between group hover:border-hw-accent/20 transition-all">
+              <a key={item.label} href={item.link} className="p-4 bg-surface border border-border rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
                 <div className="flex items-center gap-4">
-                  <div className="text-white/20 group-hover:text-hw-accent transition-colors">{item.icon}</div>
-                  <span className="text-xs font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{item.label}</span>
+                  <div className="text-text-secondary group-hover:text-primary transition-colors">{item.icon}</div>
+                  <span className="text-xs font-bold uppercase tracking-tight text-text-secondary group-hover:text-text-primary">{item.label}</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-hw-accent" />
+                <ChevronRight className="w-4 h-4 text-border group-hover:text-primary" />
               </a>
             ))}
           </div>
 
-          <button 
+          <Button 
+            variant="secondary"
             onClick={() => handleAction('Сбросить все настройки?', () => {})}
-            className="w-full p-4 border border-hw-danger/20 rounded-2xl flex items-center justify-center gap-3 text-hw-danger/60 hover:text-hw-danger hover:bg-hw-danger/10 transition-all"
+            className="w-full p-6 text-text-secondary hover:text-error hover:bg-error/5 border-border"
           >
-            <RotateCcw className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Сбросить настройки</span>
-          </button>
+            <RotateCcw className="w-4 h-4 mr-3" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Сбросить настройки</span>
+          </Button>
         </div>
       )
     }
   ];
 
   return (
-    <div className="h-full flex flex-col lg:flex-row overflow-hidden relative">
-      <div className="absolute inset-0 bg-hw-bg/40 backdrop-blur-2xl -z-10" />
+    <div className="h-full flex flex-col lg:flex-row overflow-hidden relative bg-background">
       
       {/* Sidebar (Desktop) / Header (Mobile) */}
       <div className={cn(
-        "lg:w-80 border-hw-border flex flex-col shrink-0 z-10",
-        isMobile ? "p-6 border-b" : "p-8 border-r bg-black/20"
+        "lg:w-80 border-border flex flex-col shrink-0 z-10",
+        isMobile ? "p-6 border-b" : "p-8 border-r bg-surface/50"
       )}>
         <div className="mb-8">
-          <h2 className="text-2xl font-black tracking-tight uppercase italic text-white">Настройки</h2>
-          <p className="hw-label text-[10px] mt-1 opacity-60">Конфигурация системы</p>
+          <h2 className="text-2xl font-bold tracking-tight uppercase text-text-primary">Настройки</h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mt-1">Конфигурация системы</p>
         </div>
 
         <nav className={cn(
@@ -515,19 +507,19 @@ export default function SettingsScreen() {
               className={cn(
                 "flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 shrink-0 lg:shrink",
                 activeSection === section.id 
-                  ? "bg-hw-accent text-hw-bg shadow-[0_0_20px_rgba(0,242,255,0.2)]" 
-                  : "text-white/40 hover:text-white hover:bg-white/5"
+                  ? "bg-primary text-white shadow-lg" 
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface"
               )}
             >
               {section.icon}
-              <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">{section.title}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:block">{section.title}</span>
             </button>
           ))}
         </nav>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6 lg:p-12 scrollbar-none">
+      <div className="flex-1 overflow-y-auto p-6 lg:p-12 custom-scrollbar">
         <div className="max-w-2xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
@@ -538,10 +530,10 @@ export default function SettingsScreen() {
               transition={{ duration: 0.3 }}
             >
               <div className="mb-8 lg:mb-12">
-                <h3 className="text-3xl font-black uppercase tracking-tighter italic text-white">
+                <h3 className="text-3xl font-bold uppercase tracking-tighter text-text-primary">
                   {sections.find(s => s.id === activeSection)?.title}
                 </h3>
-                <div className="h-1 w-12 bg-hw-accent mt-4 rounded-full shadow-[0_0_10px_rgba(0,242,255,0.5)]" />
+                <div className="h-1 w-12 bg-primary mt-4 rounded-full shadow-sm" />
               </div>
               
               {sections.find(s => s.id === activeSection)?.content}
@@ -557,31 +549,32 @@ export default function SettingsScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-hw-bg/80 backdrop-blur-xl"
+            className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md"
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-sm glass-panel p-8 rounded-[2.5rem] border-hw-danger/30 text-center space-y-6"
+              className="w-full max-w-sm bg-surface p-8 rounded-[2.5rem] border border-border text-center space-y-6 shadow-modal"
             >
-              <div className="w-16 h-16 bg-hw-danger/10 rounded-3xl flex items-center justify-center text-hw-danger mx-auto">
+              <div className="w-16 h-16 bg-error/10 rounded-3xl flex items-center justify-center text-error mx-auto">
                 <AlertCircle className="w-8 h-8" />
               </div>
-              <h4 className="text-xl font-black uppercase tracking-tight text-white">{showConfirm.title}</h4>
+              <h4 className="text-xl font-bold uppercase tracking-tight text-text-primary">{showConfirm.title}</h4>
               <div className="flex gap-3">
-                <button 
+                <Button 
+                  variant="secondary"
                   onClick={() => setShowConfirm(null)}
-                  className="flex-1 h-14 rounded-2xl bg-white/5 text-white/60 font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
+                  className="flex-1 h-14 rounded-2xl"
                 >
                   Отмена
-                </button>
-                <button 
+                </Button>
+                <Button 
                   onClick={() => { showConfirm.onConfirm(); setShowConfirm(null); }}
-                  className="flex-1 h-14 rounded-2xl bg-hw-danger text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-hw-danger/20 hover:scale-105 transition-all"
+                  className="flex-1 h-14 rounded-2xl bg-error hover:bg-error/80"
                 >
                   Подтвердить
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>

@@ -6,6 +6,7 @@ import { fetchBikePOIs } from '../services/poi';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { LocateFixed, Map as MapIcon } from 'lucide-react';
+import { Button } from './ui/Button';
 import 'leaflet/dist/leaflet.css';
 
 function cn(...inputs: ClassValue[]) {
@@ -27,9 +28,9 @@ const UserIcon = L.divIcon({
   className: 'user-location-marker',
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-hw-accent/20 rounded-full animate-ping"></div>
-      <div class="absolute w-6 h-6 bg-hw-accent/40 rounded-full animate-pulse"></div>
-      <div class="w-3 h-3 bg-hw-accent border-2 border-white rounded-full shadow-lg z-10"></div>
+      <div class="absolute w-8 h-8 bg-primary/20 rounded-full animate-ping"></div>
+      <div class="absolute w-6 h-6 bg-primary/40 rounded-full animate-pulse"></div>
+      <div class="w-3 h-3 bg-primary border-2 border-white rounded-full shadow-lg z-10"></div>
     </div>
   `,
   iconSize: [32, 32],
@@ -201,12 +202,12 @@ export default function Map({
             key={poi.id}
             center={[poi.lat, poi.lng]}
             radius={6}
-            pathOptions={{ color: 'var(--color-hw-accent)', fillColor: 'var(--color-hw-accent)', fillOpacity: 0.6 }}
+            pathOptions={{ color: 'var(--primary)', fillColor: 'var(--primary)', fillOpacity: 0.6 }}
           >
             <Popup>
               <div className="p-1">
                 <p className="font-bold text-xs">{poi.name || 'Велоточка'}</p>
-                <p className="hw-label">{poi.type}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mt-1">{poi.type}</p>
               </div>
             </Popup>
           </CircleMarker>
@@ -240,7 +241,7 @@ export default function Map({
                 )}
                 <button
                   onClick={() => onRemovePoint(i)}
-                  className="text-hw-danger text-[10px] mt-2 hover:underline uppercase font-bold tracking-widest font-mono"
+                  className="text-error text-[10px] mt-2 hover:underline uppercase font-bold tracking-widest"
                 >
                   Удалить
                 </button>
@@ -259,7 +260,7 @@ export default function Map({
                 <Polyline
                   key={`alt-${idx}`}
                   positions={alt.points}
-                  color={isSelected ? "var(--color-hw-accent)" : "#6b7280"}
+                  color={isSelected ? "var(--primary)" : "var(--text-hint)"}
                   weight={isSelected ? 6 : 4}
                   opacity={isSelected ? 0.9 : 0.4}
                   eventHandlers={{
@@ -274,7 +275,7 @@ export default function Map({
             {/* Render main route */}
             <Polyline
               positions={route.points}
-              color={selectedRouteIndex === 0 ? "var(--color-hw-accent)" : "#6b7280"}
+              color={selectedRouteIndex === 0 ? "var(--primary)" : "var(--text-hint)"}
               weight={selectedRouteIndex === 0 ? 6 : 4}
               opacity={selectedRouteIndex === 0 ? 0.9 : 0.4}
               eventHandlers={{
@@ -290,7 +291,9 @@ export default function Map({
       {/* Map Controls */}
       <div className="absolute bottom-24 md:bottom-6 right-6 flex flex-col gap-3 z-[1004]">
         {route && (
-          <button
+          <Button
+            variant="secondary"
+            size="icon"
             onClick={() => {
               if (mapInstance && route) {
                 const currentRoute = (route.alternatives && selectedRouteIndex > 0) 
@@ -300,20 +303,22 @@ export default function Map({
                 mapInstance.fitBounds(bounds, { padding: [50, 50] });
               }
             }}
-            className="w-12 h-12 hw-card flex items-center justify-center text-hw-accent shadow-2xl hover:bg-hw-surface transition-all group"
+            className="w-12 h-12 bg-surface/90 backdrop-blur-md shadow-lg hover:bg-surface transition-all group"
             title="Показать весь маршрут"
           >
-            <MapIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          </button>
+            <MapIcon className="w-5 h-5 group-hover:scale-110 transition-transform text-primary" strokeWidth={1.5} />
+          </Button>
         )}
         
-        <button
+        <Button
+          variant="secondary"
+          size="icon"
           onClick={handleLocate}
-          className="w-12 h-12 hw-card flex items-center justify-center text-hw-accent shadow-2xl hover:bg-hw-surface transition-all group"
+          className="w-12 h-12 bg-surface/90 backdrop-blur-md shadow-lg hover:bg-surface transition-all group"
           title="Мое местоположение"
         >
-          <LocateFixed className="w-5 h-5 group-hover:scale-110 transition-transform" />
-        </button>
+          <LocateFixed className="w-5 h-5 group-hover:scale-110 transition-transform text-primary" strokeWidth={1.5} />
+        </Button>
       </div>
     </div>
   );
