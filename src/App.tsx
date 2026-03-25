@@ -139,7 +139,40 @@ export default function App() {
     setPoints([]);
     setRoute(undefined);
     setIsNavigating(false);
+    setShowRouteMenu(false);
   }, []);
+
+  const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleSaveRoute = useCallback(() => {
+    if (!route) return;
+    const savedRoutes = JSON.parse(localStorage.getItem('bikeRoute_savedRoutes') || '[]');
+    const newSavedRoute = {
+      id: Date.now().toString(),
+      name: `Маршрут ${new Date().toLocaleDateString()}`,
+      points: [...points],
+      distance: route.distance,
+      duration: route.duration,
+      elevationGain: route.elevationGain,
+      date: new Date().toISOString()
+    };
+    localStorage.setItem('bikeRoute_savedRoutes', JSON.stringify([...savedRoutes, newSavedRoute]));
+    setShowRouteMenu(false);
+    showNotification("Маршрут успешно сохранен!");
+  }, [route, points]);
+
+  const handleShareRoute = useCallback(() => {
+    if (!route) return;
+    const shareUrl = `${window.location.origin}/?points=${encodeURIComponent(JSON.stringify(points))}`;
+    navigator.clipboard.writeText(shareUrl);
+    setShowRouteMenu(false);
+    showNotification("Ссылка скопирована в буфер обмена!");
+  }, [route, points]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-hw-bg text-white font-sans select-none overflow-hidden relative">
@@ -403,10 +436,10 @@ export default function App() {
                           exit={{ opacity: 0, x: 20 }}
                           className="absolute right-20 bottom-0 glass-panel p-3 rounded-2xl min-w-[180px] space-y-2 border-hw-accent/20"
                         >
-                          <button className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white/60 hover:bg-white/5 hover:text-white transition-all">
+                          <button onClick={handleSaveRoute} className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white/60 hover:bg-white/5 hover:text-white transition-all">
                             <Download className="w-4 h-4" /> Сохранить
                           </button>
-                          <button className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white/60 hover:bg-white/5 hover:text-white transition-all">
+                          <button onClick={handleShareRoute} className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white/60 hover:bg-white/5 hover:text-white transition-all">
                             <Share2 className="w-4 h-4" /> Поделиться
                           </button>
                           <button onClick={handleClear} className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-hw-danger hover:bg-hw-danger/10 transition-all">
@@ -450,30 +483,56 @@ export default function App() {
                   )}
                 </AnimatePresence>
 
-                {/* Navigation HUD (Bottom Quick Access) */}
+                {/* Navigation HUD (Top & Bottom Quick Access) */}
                 <AnimatePresence>
-                  {isNavigating && (
-                    <motion.div 
-                      initial={{ y: 100, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: 100, opacity: 0 }}
-                      className="absolute bottom-32 left-1/2 -translate-x-1/2 z-[1002]"
-                    >
-                      <div className="glass-panel rounded-[2.5rem] p-3 flex gap-4 border-hw-accent/30 shadow-[0_0_40px_rgba(0,242,255,0.1)]">
-                        <button 
-                          onClick={() => setIsNavigating(false)}
-                          className="w-16 h-16 rounded-full bg-hw-danger/20 text-hw-danger flex items-center justify-center hover:bg-hw-danger hover:text-white transition-all shadow-[0_0_20px_rgba(255,59,48,0.2)]"
-                        >
-                          <X className="w-8 h-8" />
-                        </button>
-                        <button className="w-16 h-16 rounded-full bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all">
-                          <Coffee className="w-8 h-8" />
-                        </button>
-                        <button className="w-16 h-16 rounded-full bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all">
-                          <Settings className="w-8 h-8" />
-                        </button>
-                      </div>
-                    </motion.div>
+                  {isNavigating && route && (
+                    <>
+                      {/* Top HUD: Next Turn */}
+                      <motion.div 
+                        initial={{ y: -100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -100, opacity: 0 }}
+                        className="absolute top-6 left-1/2 -translate-x-1/2 z-[1002] w-full max-w-md px-4"
+                      >
+                        <div className="glass-panel rounded-3xl p-4 flex items-center gap-4 border-hw-accent/30 shadow-[0_0_40px_rgba(0,242,255,0.2)]">
+                          <div className="w-16 h-16 bg-hw-accent rounded-2xl flex items-center justify-center text-hw-bg shadow-lg shadow-hw-accent/20">
+                            <Navigation className="w-10 h-10" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="hw-label text-[10px] tracking-[0.2em] mb-1">Через 250м</p>
+                            <p className="text-xl font-black uppercase tracking-tight leading-none">Поверните направо</p>
+                            <p className="text-[10px] text-white/40 uppercase mt-1">ул. Тверская</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-black font-mono leading-none">12:45</p>
+                            <p className="hw-label text-[8px] mt-1">Прибытие</p>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Bottom HUD: Quick Controls */}
+                      <motion.div 
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="absolute bottom-32 left-1/2 -translate-x-1/2 z-[1002]"
+                      >
+                        <div className="glass-panel rounded-[2.5rem] p-3 flex gap-4 border-hw-accent/30 shadow-[0_0_40px_rgba(0,242,255,0.1)]">
+                          <button 
+                            onClick={() => setIsNavigating(false)}
+                            className="w-16 h-16 rounded-full bg-hw-danger/20 text-hw-danger flex items-center justify-center hover:bg-hw-danger hover:text-white transition-all shadow-[0_0_20px_rgba(255,59,48,0.2)]"
+                          >
+                            <X className="w-8 h-8" />
+                          </button>
+                          <button className="w-16 h-16 rounded-full bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all">
+                            <Coffee className="w-8 h-8" />
+                          </button>
+                          <button className="w-16 h-16 rounded-full bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all">
+                            <Settings className="w-8 h-8" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
                   )}
                 </AnimatePresence>
 
@@ -519,12 +578,16 @@ export default function App() {
               </>
             ) : activeTab === 'routes' ? (
               <RoutesScreen onSelectRoute={(r) => {
-                // Load mock points for the selected route
-                setPoints([
-                  { lat: 55.7558, lng: 37.6173 },
-                  { lat: 55.7512, lng: 37.6184 },
-                  { lat: 55.7489, lng: 37.6256 }
-                ]);
+                if (r.points && r.points.length > 0) {
+                  setPoints(r.points);
+                } else {
+                  // Fallback for mock routes
+                  setPoints([
+                    { lat: 55.7558, lng: 37.6173 },
+                    { lat: 55.7512, lng: 37.6184 },
+                    { lat: 55.7489, lng: 37.6256 }
+                  ]);
+                }
                 setActiveTab('map');
                 setIsPlanning(false);
               }} />
@@ -585,6 +648,21 @@ export default function App() {
 
       {/* Navigation Overlay */}
       <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[3000] glass-panel px-6 py-3 rounded-2xl flex items-center gap-3 border-hw-accent/30 shadow-[0_0_50px_rgba(0,242,255,0.2)]"
+          >
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              notification.type === 'success' ? "bg-hw-success" : "bg-hw-danger"
+            )} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{notification.message}</span>
+          </motion.div>
+        )}
+
         {isNavigating && route && (
           <motion.div
             initial={{ opacity: 0 }}

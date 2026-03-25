@@ -2,6 +2,7 @@ import { Search, Filter, Download, Plus, MapPin, Calendar, Clock, Ruler, Chevron
 import { motion } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useEffect, useState } from 'react';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,6 +17,7 @@ interface RouteItem {
   ascent: number;
   type: 'road' | 'mtb' | 'gravel';
   isFavorite?: boolean;
+  points?: any[];
 }
 
 const MOCK_ROUTES: RouteItem[] = [
@@ -26,6 +28,19 @@ const MOCK_ROUTES: RouteItem[] = [
 ];
 
 export default function RoutesScreen({ onSelectRoute }: { onSelectRoute: (route: any) => void }) {
+  const [savedRoutes, setSavedRoutes] = useState<RouteItem[]>([]);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('bikeRoute_savedRoutes') || '[]');
+    setSavedRoutes(saved.map((r: any) => ({
+      ...r,
+      ascent: r.elevationGain || 0,
+      type: 'road' // Default type for saved routes
+    })));
+  }, []);
+
+  const allRoutes = [...savedRoutes, ...MOCK_ROUTES];
+
   return (
     <div className="h-full flex flex-col p-6 space-y-6 overflow-y-auto scrollbar-none relative">
       <div className="absolute inset-0 bg-hw-bg/40 backdrop-blur-2xl -z-10" />
@@ -68,7 +83,7 @@ export default function RoutesScreen({ onSelectRoute }: { onSelectRoute: (route:
 
       {/* Routes List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {MOCK_ROUTES.map((route, i) => (
+        {allRoutes.map((route, i) => (
           <motion.div
             key={route.id}
             initial={{ opacity: 0, y: 20 }}
