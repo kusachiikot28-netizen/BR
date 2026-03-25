@@ -24,17 +24,28 @@ export async function fetchRoute(
   const coordinates = points.map(p => [p.lng, p.lat]);
 
   try {
+    const body: any = {
+      coordinates,
+      elevation: true,
+      extra_info: ['steepness'],
+    };
+
+    // ORS only supports alternatives for 2-point routes
+    if (points.length === 2) {
+      body.alternative_routes = {
+        target_count: 3,
+        weight_factor: 1.4,
+        share_factor: 0.6
+      };
+    }
+
     const response = await fetch(`${ORS_BASE_URL}/${profile}/geojson`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': apiKey,
       },
-      body: JSON.stringify({
-        coordinates,
-        elevation: true,
-        extra_info: ['steepness'],
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -42,45 +53,54 @@ export async function fetchRoute(
     }
 
     const data = await response.json();
-    const feature = data.features[0];
-    const geometry = feature.geometry.coordinates; // [lng, lat, alt]
-    const properties = feature.properties;
-    const segments = properties.segments[0];
-    const instructions = segments.steps.map((step: any) => ({
-      distance: step.distance,
-      duration: step.duration,
-      type: step.type,
-      instruction: step.instruction,
-      name: step.name,
-      way_points: step.way_points,
-    }));
-
-    const routePoints: [number, number][] = geometry.map((c: any) => [c[1], c[0]]);
     
-    // Calculate elevation profile
-    let currentDistance = 0;
-    const elevationProfile = geometry.map((c: any, i: number) => {
-      if (i > 0) {
-        const prev = geometry[i - 1];
-        const dist = getDistance(prev[1], prev[0], c[1], c[0]);
-        currentDistance += dist;
-      }
-      return {
-        distance: currentDistance,
-        elevation: c[2] || 0,
-        gradient: 0, // Simplified
-      };
-    });
+    const processFeature = (feature: any, index: number): RouteInfo => {
+      const geometry = feature.geometry.coordinates; // [lng, lat, alt]
+      const properties = feature.properties;
+      const segments = properties.segments[0];
+      const instructions = segments.steps.map((step: any) => ({
+        distance: step.distance,
+        duration: step.duration,
+        type: step.type,
+        instruction: step.instruction,
+        name: step.name,
+        way_points: step.way_points,
+      }));
 
-    return {
-      distance: properties.summary.distance,
-      duration: properties.summary.duration,
-      ascent: properties.ascent || 0,
-      descent: properties.descent || 0,
-      points: routePoints,
-      elevationProfile,
-      instructions,
+      const routePoints: [number, number][] = geometry.map((c: any) => [c[1], c[0]]);
+      
+      let currentDistance = 0;
+      const elevationProfile = geometry.map((c: any, i: number) => {
+        if (i > 0) {
+          const prev = geometry[i - 1];
+          const dist = getDistance(prev[1], prev[0], c[1], c[0]);
+          currentDistance += dist;
+        }
+        return {
+          distance: currentDistance,
+          elevation: c[2] || 0,
+          gradient: 0,
+        };
+      });
+
+      return {
+        id: `route-${index}`,
+        distance: properties.summary.distance,
+        duration: properties.summary.duration,
+        ascent: properties.ascent || 0,
+        descent: properties.descent || 0,
+        points: routePoints,
+        elevationProfile,
+        instructions,
+      };
     };
+
+    const mainRoute = processFeature(data.features[0], 0);
+    if (data.features.length > 1) {
+      mainRoute.alternatives = data.features.slice(1).map((f: any, i: number) => processFeature(f, i + 1));
+    }
+
+    return mainRoute;
   } catch (error) {
     console.error('Routing failed:', error);
     return getMockRoute(points);
@@ -111,7 +131,8 @@ function getMockRoute(points: RoutePoint[]): RouteInfo {
     gradient: 0,
   }));
 
-  return {
+  const mainRoute: RouteInfo = {
+    id: 'route-0',
     distance: points.length * 1000,
     duration: points.length * 300,
     ascent: 50,
@@ -120,4 +141,21 @@ function getMockRoute(points: RoutePoint[]): RouteInfo {
     elevationProfile,
     instructions: [],
   };
+
+  if (points.length === 2) {
+    mainRoute.alternatives = [
+      {
+        id: 'route-1',
+        distance: points.length * 1200,
+        duration: points.length * 350,
+        ascent: 70,
+        descent: 70,
+        points: routePoints.map(p => [p[0] + 0.005, p[1] + 0.005]),
+        elevationProfile: elevationProfile.map(e => ({ ...e, elevation: e.elevation + 20 })),
+        instructions: [],
+      }
+    ];
+  }
+
+  return mainRoute;
 }

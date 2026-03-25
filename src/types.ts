@@ -23,6 +23,7 @@ export interface RouteStep {
 }
 
 export interface RouteInfo {
+  id?: string;
   distance: number; // meters
   duration: number; // seconds
   ascent: number; // meters
@@ -30,6 +31,7 @@ export interface RouteInfo {
   points: [number, number][]; // [lat, lng]
   elevationProfile: ElevationData[];
   instructions: RouteStep[];
+  alternatives?: RouteInfo[];
 }
 
 export interface POI {
