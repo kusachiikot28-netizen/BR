@@ -25,7 +25,7 @@ interface SidebarProps {
   selectedRouteIndex: number;
   showPOIs: boolean;
   weather: WeatherInfo | null;
-  activeTab?: 'map' | 'route' | 'guide' | 'stats';
+  activeTab?: 'route' | 'guide';
   onAddPoint: (point: RoutePoint) => void;
   onUpdatePoint: (index: number, point: RoutePoint) => void;
   onRemovePoint: (index: number) => void;
@@ -44,7 +44,7 @@ export default function Sidebar({
   selectedRouteIndex,
   showPOIs,
   weather,
-  activeTab = 'map',
+  activeTab = 'route',
   onAddPoint,
   onUpdatePoint,
   onRemovePoint,
@@ -121,256 +121,186 @@ export default function Sidebar({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: -320, opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className={cn(
-        "fixed md:relative top-0 bottom-20 md:bottom-0 left-0 w-full md:w-80 h-auto md:h-full bg-hw-bg text-white flex flex-col border-r border-hw-border shadow-2xl z-[1005] md:z-50",
-        activeTab === 'map' && "hidden md:flex"
-      )}
+      className="fixed md:relative top-0 bottom-20 md:bottom-0 left-0 w-full md:w-96 h-auto md:h-full flex flex-col z-[1005] md:z-50 transition-all duration-500"
     >
       {/* Sidebar Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none">
-        {/* Route Editor Card */}
-        <section className="hw-card p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "w-1.5 h-1.5 rounded-full animate-pulse",
-                points.length > 0 ? "bg-hw-success" : "bg-hw-warning"
-              )} />
-              <h2 className="text-xs font-black tracking-widest uppercase italic">
-                {points.length > 0 ? "Система онлайн" : "Ожидание ввода"}
-              </h2>
-            </div>
-            <button className="p-1 hover:bg-hw-border rounded transition-colors">
-              <Settings className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button 
-              onClick={() => {
-                if (points.length === 0) {
-                  alert("Нажмите на карту, чтобы добавить первую точку.");
-                }
-              }}
-              className="hw-button hw-button-primary text-[9px]"
-            >
-              Рисовать вручную
-            </button>
-            <button className="hw-button text-[9px]">Импорт GPX</button>
-          </div>
-          <button className="hw-button w-full flex items-center justify-center gap-2 text-[9px]">
-            <Cloud className="w-3.5 h-3.5" /> Облачная синхр.
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-none relative">
+        <div className="absolute inset-0 bg-hw-bg/40 backdrop-blur-2xl -z-10" />
+        
+        {/* View Toggle (Route vs Guide) */}
+        <div className="flex glass-panel p-1.5 rounded-2xl">
+          <button 
+            onClick={() => setView('points')}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+              view === 'points' ? "bg-hw-accent text-hw-bg shadow-[0_0_20px_rgba(0,242,255,0.3)]" : "text-white/40 hover:text-white/60"
+            )}
+          >
+            Маршрут
           </button>
-        </section>
-
-        {/* Search Bar */}
-        <div className="relative group">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Поиск локации..."
-            className="w-full bg-hw-surface border border-hw-border rounded-xl py-2.5 px-4 pl-10 text-xs focus:outline-none focus:ring-1 focus:ring-hw-accent transition-all placeholder:text-gray-600 font-mono"
-          />
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-hw-accent transition-colors" />
-          {isSearching && (
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-              <div className="w-3 h-3 border-2 border-hw-accent border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
+          <button 
+            onClick={() => setView('instructions')}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+              view === 'instructions' ? "bg-hw-accent text-hw-bg shadow-[0_0_20px_rgba(0,242,255,0.3)]" : "text-white/40 hover:text-white/60"
+            )}
+          >
+            Гайд
+          </button>
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="hw-card overflow-hidden">
-            {searchResults.map((result, i) => (
-              <button
-                key={i}
-                onClick={() => handleSelectResult(result)}
-                className="w-full px-4 py-2.5 text-left text-[11px] hover:bg-hw-surface transition-colors border-b border-hw-border last:border-0 flex items-center gap-3"
-              >
-                <MapPin className="w-3.5 h-3.5 text-hw-accent shrink-0" />
-                <span className="truncate font-mono">{result.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Bike Type Selector */}
-        <section className="hw-card p-4 space-y-3">
-          <p className="hw-label">Профиль ТС</p>
-          <div className="grid grid-cols-2 gap-2">
-            {bikeOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => onBikeTypeChange(option.value)}
-                className={cn(
-                  "hw-button text-[9px] flex items-center justify-center gap-2",
-                  bikeType === option.value && "bg-hw-accent border-hw-accent-light text-white"
-                )}
-              >
-                <Bike className="w-3 h-3" />
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Route Details Card */}
-        {currentRoute && (
-          <section className="hw-card p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black tracking-widest uppercase italic">Телеметрия</h2>
-              <Activity className="w-4 h-4 text-hw-accent" />
-            </div>
-            <div className="grid grid-cols-2 gap-y-4">
-              <div>
-                <p className="hw-label">Дистанция</p>
-                <p className="hw-value">{formatDistance(currentRoute.distance)}</p>
+        {view === 'points' ? (
+          <>
+            {/* Points List */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[10px] font-black tracking-[0.2em] uppercase italic text-white/90">Точки маршрута</h3>
+                <button onClick={onClear} className="text-[8px] text-hw-danger uppercase font-black tracking-widest hover:opacity-80 transition-opacity">Очистить</button>
               </div>
-              <div>
-                <p className="hw-label">Подъем</p>
-                <p className="hw-value text-hw-success">+{currentRoute.ascent}м</p>
-              </div>
-              <div>
-                <p className="hw-label">Время</p>
-                <p className="hw-value">{formatDuration(currentRoute.duration)}</p>
-              </div>
-              <div>
-                <p className="hw-label">Спуск</p>
-                <p className="hw-value text-hw-danger">-{currentRoute.descent}м</p>
-              </div>
-            </div>
-
-            {/* Alternative Routes */}
-            {route?.alternatives && route.alternatives.length > 0 && (
-              <div className="space-y-2 pt-4 border-t border-hw-border">
-                <p className="hw-label">Альтернативные пути</p>
-                <div className="flex flex-col gap-2">
-                  {[route, ...route.alternatives].map((r, i) => (
-                    <button
+              <div className="space-y-3">
+                {points.length === 0 ? (
+                  <div className="hw-card p-8 border-dashed border-hw-border/50 flex flex-col items-center justify-center text-center gap-4 opacity-40">
+                    <MapPin className="w-8 h-8" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest leading-relaxed">Нажмите на карту,<br/>чтобы добавить точку</p>
+                  </div>
+                ) : (
+                  points.map((point, i) => (
+                    <motion.div 
                       key={i}
-                      onClick={() => onSelectRoute(i)}
-                      className={cn(
-                        "hw-button w-full flex items-center justify-between py-2.5",
-                        selectedRouteIndex === i && "bg-hw-accent border-hw-accent-light text-white"
-                      )}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="hw-card p-4 flex items-center gap-4 group hover:border-hw-accent/30 transition-all"
                     >
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Путь {i === 0 ? 'Альфа' : i === 1 ? 'Бета' : 'Гамма'}</span>
-                      <span className="hw-value text-[10px] opacity-80">{formatDistance(r.distance)}</span>
-                    </button>
-                  ))}
-                </div>
+                      <div className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-mono text-xs font-black",
+                        i === 0 ? "bg-hw-accent/20 text-hw-accent border border-hw-accent/30" : 
+                        i === points.length - 1 ? "bg-hw-danger/20 text-hw-danger border border-hw-danger/30" : 
+                        "bg-white/5 text-white/40 border border-white/10"
+                      )}>
+                        {i === 0 ? 'A' : i === points.length - 1 ? 'B' : i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-tight truncate text-white/80">{point.label || `Точка ${i + 1}`}</p>
+                        <p className="text-[8px] font-mono text-white/20 uppercase tracking-widest mt-0.5">{point.lat.toFixed(4)}, {point.lng.toFixed(4)}</p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-2 hover:text-hw-accent transition-colors"><Settings className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => onRemovePoint(i)} className="p-2 hover:text-hw-danger transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+                {points.length > 0 && (
+                  <button className="w-full py-4 border border-dashed border-hw-border/50 rounded-2xl text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-hw-accent hover:border-hw-accent/30 hover:bg-hw-accent/5 transition-all flex items-center justify-center gap-2">
+                    <Plus className="w-4 h-4" /> Добавить точку
+                  </button>
+                )}
               </div>
-            )}
+            </section>
+
+            {/* Bike Type Selector */}
+            <section className="hw-card p-5 space-y-4">
+              <p className="hw-label text-[9px] opacity-60">Профиль транспортного средства</p>
+              <div className="grid grid-cols-2 gap-3">
+                {bikeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => onBikeTypeChange(option.value)}
+                    className={cn(
+                      "hw-button h-11 flex items-center justify-center gap-3 transition-all duration-500",
+                      bikeType === option.value ? "bg-hw-accent/20 border-hw-accent text-hw-accent shadow-[0_0_20px_rgba(0,242,255,0.1)]" : "opacity-60 hover:opacity-100"
+                    )}
+                  >
+                    <Bike className={cn("w-4 h-4", bikeType === option.value ? "animate-pulse" : "")} />
+                    <span className="text-[10px] font-bold">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          /* Instructions View */
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-[10px] font-black tracking-[0.2em] uppercase italic text-white/90">Пошаговый гайд</h3>
+              <button className="p-2 hover:bg-hw-accent/10 rounded-xl transition-all text-hw-label hover:text-hw-accent">
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {currentRoute?.instructions.map((inst, i) => (
+                <div key={i} className="hw-card p-4 flex items-center gap-4 group hover:border-hw-accent/30 transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-hw-accent shrink-0 border border-white/10">
+                    {getInstructionIcon(inst.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-medium leading-relaxed text-white/80">{inst.text}</p>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className="text-[9px] font-mono font-bold text-hw-accent uppercase tracking-widest">{formatDistance(inst.distance)}</span>
+                      <span className="w-1 h-1 rounded-full bg-white/10" />
+                      <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">{formatDuration(inst.time)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
-        {/* Maintenance Reminders Card */}
-        <section className="hw-card p-4 space-y-3 bg-hw-accent/5 border-hw-accent/20">
-          <div className="flex items-center gap-2">
-            <Bell className="w-3.5 h-3.5 text-hw-accent" />
-            <h2 className="text-[10px] font-black tracking-widest uppercase italic">Системные оповещения</h2>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-hw-accent/10 flex items-center justify-center shrink-0">
-              <Shield className="w-4 h-4 text-hw-accent" />
+        {/* Route Details Card (Telemetry) */}
+        {currentRoute && (
+          <section className="hw-card p-5 space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Activity className="w-16 h-16 text-hw-accent" />
             </div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold leading-tight uppercase tracking-tight">Голосовое ведение активно</p>
-              <p className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">Проверка давления: 48ч</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Statistics Card */}
-        <section className="hw-card p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[10px] font-black tracking-widest uppercase italic">Окружение</h2>
-            <div className="flex gap-1">
-              <div className={cn("w-1 h-3 rounded-full", weather ? "bg-hw-accent" : "bg-hw-border")} />
-              <div className={cn("w-1 h-3 rounded-full", weather ? "bg-hw-accent" : "bg-hw-border")} />
-              <div className="w-1 h-3 bg-hw-border rounded-full" />
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <WindIcon className="w-3.5 h-3.5 text-gray-500" />
-                <span className="hw-label">Ветер</span>
+            <div className="flex items-center justify-between relative">
+              <h2 className="text-[11px] font-black tracking-[0.2em] uppercase italic text-white/90">Телеметрия</h2>
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-hw-accent animate-ping" />
+                <div className="w-1 h-1 rounded-full bg-hw-accent/50" />
               </div>
-              <span className="hw-value">
-                {weather?.windSpeed ? `${weather.windSpeed} км/ч ${weather.windDirection || ''}` : 'ШТИЛЬ'}
-              </span>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Cloud className="w-3.5 h-3.5 text-gray-500" />
-                <span className="hw-label">Погода</span>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-6 relative">
+              <div className="space-y-1">
+                <p className="hw-label text-[8px]">Дистанция</p>
+                <p className="text-xl font-mono font-black tracking-tighter text-white">{formatDistance(currentRoute.distance)}</p>
               </div>
-              <span className="hw-value">
-                {weather ? `${weather.temp}°C • ${weather.description}` : 'НЕТ ДАННЫХ'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className={cn("w-3.5 h-3.5", currentRoute?.ascent && currentRoute.ascent > 500 ? "text-hw-danger" : "text-gray-500")} />
-                <span className="hw-label">Интенсивность</span>
+              <div className="space-y-1">
+                <p className="hw-label text-[8px]">Подъем</p>
+                <p className="text-xl font-mono font-black tracking-tighter text-hw-success">+{currentRoute.ascent}м</p>
               </div>
-              <span className={cn("hw-value", currentRoute?.ascent && currentRoute.ascent > 500 ? "text-hw-danger" : "")}>
-                {currentRoute?.ascent && currentRoute.ascent > 500 ? "КРИТИЧ. ПОДЪЕМ" : "НОРМА"}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* Points List */}
-        {points.length > 0 && (
-          <section className="hw-card p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[10px] font-black tracking-widest uppercase italic">Путевые точки</h2>
-              <button onClick={onClear} className="text-[8px] text-hw-danger uppercase font-bold tracking-widest hover:underline">Очистить все</button>
-            </div>
-            <div className="space-y-2">
-              {points.map((point, i) => (
-                <div key={i} className="flex items-center gap-3 p-2 bg-hw-surface/50 rounded-lg border border-hw-border/50 group">
-                  <div className={cn(
-                    "w-6 h-6 rounded flex items-center justify-center shrink-0 font-mono text-[10px] font-bold",
-                    i === 0 ? "bg-hw-accent/20 text-hw-accent" : 
-                    i === points.length - 1 ? "bg-hw-danger/20 text-hw-danger" : 
-                    "bg-hw-border text-gray-400"
-                  )}>
-                    {i === 0 ? 'A' : i === points.length - 1 ? 'B' : i + 1}
-                  </div>
-                  <span className="flex-1 text-[10px] truncate text-gray-300 font-mono uppercase tracking-tight">{point.label || `Точка ${i + 1}`}</span>
-                  <button onClick={() => onRemovePoint(i)} className="p-1 opacity-0 group-hover:opacity-100 hover:text-hw-danger transition-all">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+              <div className="space-y-1">
+                <p className="hw-label text-[8px]">Время</p>
+                <p className="text-xl font-mono font-black tracking-tighter text-white">{formatDuration(currentRoute.duration)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="hw-label text-[8px]">Спуск</p>
+                <p className="text-xl font-mono font-black tracking-tighter text-hw-danger">-{currentRoute.descent}м</p>
+              </div>
             </div>
           </section>
         )}
       </div>
 
       {/* Bottom Actions */}
-      <div className="p-4 bg-hw-surface border-t border-hw-border space-y-3">
-        <div className="flex items-center justify-between">
-          <button className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-colors">
-            <TrendingUp className="w-3.5 h-3.5" /> Полная стата
+      <div className="p-6 glass-panel border-t-0 rounded-t-3xl space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-hw-label hover:text-white transition-all">
+            <TrendingUp className="w-4 h-4" /> Полная стата
           </button>
           <button 
             onClick={() => currentRoute && exportToGPX(currentRoute)}
-            className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-hw-accent hover:text-hw-accent-light transition-colors"
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-hw-accent hover:text-hw-accent-light transition-all group"
           >
-            Отправить в <Share2 className="w-3.5 h-3.5" /> Strava
+            <span className="group-hover:mr-1 transition-all">Экспорт в</span> <Share2 className="w-4 h-4" />
           </button>
         </div>
         <button
           onClick={onStartNavigation}
           disabled={!currentRoute}
-          className="w-full py-3.5 bg-hw-accent hover:bg-hw-accent-light disabled:opacity-50 disabled:hover:bg-hw-accent text-white rounded-xl font-black uppercase tracking-[0.25em] italic shadow-lg shadow-hw-accent/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+          className="w-full py-5 bg-hw-accent/10 border border-hw-accent/30 hover:bg-hw-accent/20 hover:border-hw-accent disabled:opacity-30 text-hw-accent rounded-2xl font-black uppercase tracking-[0.3em] italic shadow-[0_0_30px_rgba(0,242,255,0.1)] transition-all active:scale-95 flex items-center justify-center gap-4 group"
         >
-          Начать навигацию <ChevronRight className="w-5 h-5" />
+          Начать навигацию <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
     </motion.div>

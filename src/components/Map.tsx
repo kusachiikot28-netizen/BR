@@ -44,16 +44,20 @@ interface MapProps {
   selectedRouteIndex: number;
   showPOIs: boolean;
   isNavigating?: boolean;
+  activeTool?: 'add' | 'move' | 'delete' | null;
+  mapStyle?: 'satellite' | 'street' | 'topo';
   onAddPoint: (point: RoutePoint) => void;
   onUpdatePoint: (index: number, point: RoutePoint) => void;
   onRemovePoint: (index: number) => void;
   onSelectRoute: (index: number) => void;
 }
 
-function MapEvents({ onAddPoint, onBoundsChange }: { onAddPoint: (point: RoutePoint) => void, onBoundsChange: (bounds: any) => void }) {
+function MapEvents({ onAddPoint, onBoundsChange, activeTool }: { onAddPoint: (point: RoutePoint) => void, onBoundsChange: (bounds: any) => void, activeTool?: string | null }) {
   const map = useMapEvents({
     click(e) {
-      onAddPoint({ lat: e.latlng.lat, lng: e.latlng.lng });
+      if (activeTool === 'add') {
+        onAddPoint({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
     },
     moveend() {
       const b = map.getBounds();
@@ -91,7 +95,19 @@ function ZoomToRoute({ route, selectedRouteIndex, isNavigating }: { route?: Rout
   return null;
 }
 
-export default function Map({ points, route, selectedRouteIndex, showPOIs, isNavigating, onAddPoint, onUpdatePoint, onRemovePoint, onSelectRoute }: MapProps) {
+export default function Map({ 
+  points, 
+  route, 
+  selectedRouteIndex, 
+  showPOIs, 
+  isNavigating, 
+  activeTool,
+  mapStyle = 'satellite',
+  onAddPoint, 
+  onUpdatePoint, 
+  onRemovePoint, 
+  onSelectRoute 
+}: MapProps) {
   const [center] = useState<[number, number]>([55.7558, 37.6173]); // Moscow default
   const [pois, setPois] = useState<POI[]>([]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -129,8 +145,39 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
     );
   }, [mapInstance]);
 
+  const getTileLayer = () => {
+    switch (mapStyle) {
+      case 'street':
+        return (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        );
+      case 'topo':
+        return (
+          <TileLayer
+            attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+            url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+          />
+        );
+      case 'satellite':
+      default:
+        return (
+          <TileLayer
+            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          />
+        );
+    }
+  };
+
   return (
-    <div className={cn("w-full h-full relative", isNavigating && "cursor-crosshair")}>
+    <div className={cn(
+      "w-full h-full relative", 
+      activeTool === 'add' && "cursor-crosshair",
+      activeTool === 'delete' && "cursor-pointer"
+    )}>
       <MapContainer
         center={center}
         zoom={13}
@@ -138,37 +185,9 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
         zoomControl={false}
         ref={setMapInstance}
       >
-        <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="Стандарт">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          </LayersControl.BaseLayer>
-          
-          <LayersControl.BaseLayer name="Велосипед (CyclOSM)">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.cyclosm.org">CyclOSM</a>'
-              url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
-            />
-          </LayersControl.BaseLayer>
- 
-          <LayersControl.BaseLayer name="Спутник">
-            <TileLayer
-              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
-          </LayersControl.BaseLayer>
- 
-          <LayersControl.BaseLayer name="Рельеф (OpenTopoMap)">
-            <TileLayer
-              attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-            />
-          </LayersControl.BaseLayer>
-        </LayersControl>
+        {getTileLayer()}
         
-        <MapEvents onAddPoint={onAddPoint} onBoundsChange={handleBoundsChange} />
+        <MapEvents onAddPoint={onAddPoint} onBoundsChange={handleBoundsChange} activeTool={activeTool} />
         <ZoomToRoute route={route} selectedRouteIndex={selectedRouteIndex} isNavigating={isNavigating} />
 
         {userLocation && (
@@ -197,8 +216,13 @@ export default function Map({ points, route, selectedRouteIndex, showPOIs, isNav
           <Marker
             key={i}
             position={[p.lat, p.lng]}
-            draggable={true}
+            draggable={activeTool === 'move'}
             eventHandlers={{
+              click: () => {
+                if (activeTool === 'delete') {
+                  onRemovePoint(i);
+                }
+              },
               dragend: (e) => {
                 const marker = e.target;
                 const position = marker.getLatLng();

@@ -2,11 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import Map from './components/Map';
 import Sidebar from './components/Sidebar';
 import ElevationProfile from './components/ElevationProfile';
+import RoutesScreen from './components/screens/RoutesScreen';
+import StatsScreen from './components/screens/StatsScreen';
+import SettingsScreen from './components/screens/SettingsScreen';
 import { BikeType, RoutePoint, RouteInfo } from './types';
 import { fetchRoute } from './services/routing';
 import { fetchWeather, WeatherInfo } from './services/weather';
 import { motion, AnimatePresence } from 'motion/react';
-import { Navigation, Compass, Shield, Battery, Wind, AlertTriangle, X, MapPin, List, TrendingUp, Settings, Bike, Layers, Share2, Cloud, Clock } from 'lucide-react';
+import { 
+  Navigation, Compass, Shield, Battery, Wind, AlertTriangle, X, 
+  MapPin, List, TrendingUp, Settings, Bike, Layers, Share2, 
+  Cloud, Clock, Edit3, Check, Trash2, Undo2, Redo2, Plus, Info,
+  Bluetooth, Map as MapIcon, MoreVertical, ArrowUpRight, Download, Move,
+  Search, Coffee
+} from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -20,13 +29,18 @@ export default function App() {
   const [route, setRoute] = useState<RouteInfo | undefined>();
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isPlanning, setIsPlanning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPOIs, setShowPOIs] = useState(false);
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'map' | 'route' | 'guide' | 'stats'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'routes' | 'stats' | 'settings'>('map');
   const [isSyncing, setIsSyncing] = useState(false);
   const [battery, setBattery] = useState(82);
+  const [activeTool, setActiveTool] = useState<'add' | 'move' | 'delete' | null>(null);
+  const [showRouteMenu, setShowRouteMenu] = useState(false);
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'street' | 'topo'>('satellite');
 
   // Simulate battery drain
   useEffect(() => {
@@ -128,89 +142,98 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-hw-bg text-white font-sans select-none overflow-hidden">
+    <div className="flex flex-col h-screen w-screen bg-hw-bg text-white font-sans select-none overflow-hidden relative">
+      {/* Atmospheric Background Layers */}
+      <div className="atmosphere" />
+      <div className="scanline" />
+      
       {/* Top Bar / Header */}
-      <header className="h-16 bg-hw-surface border-b border-hw-border flex items-center justify-between px-6 shrink-0 z-[1010]">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-hw-accent rounded-xl flex items-center justify-center shadow-lg shadow-hw-accent/20 rotate-3 hover:rotate-0 transition-transform duration-300">
-              <Bike className="w-6 h-6 text-white" />
+      <header className="h-20 flex items-center justify-between px-8 shrink-0 z-[1010] relative">
+        <div className="absolute inset-x-4 top-4 bottom-0 glass-panel rounded-2xl flex items-center justify-between px-6">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4 group cursor-pointer">
+              <div className="w-12 h-12 bg-hw-accent/10 border border-hw-accent/30 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.1)] group-hover:shadow-[0_0_30px_rgba(0,242,255,0.3)] group-hover:bg-hw-accent/20 transition-all duration-500">
+                <Bike className="w-7 h-7 text-hw-accent" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black tracking-tighter uppercase italic leading-none bg-gradient-to-r from-white to-hw-accent bg-clip-text text-transparent">VeloRoute</h1>
+                <p className="hw-label text-[9px] mt-1 opacity-60">Тактическая система навигации v2.7</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tight uppercase italic leading-none">VeloRoute</h1>
-              <p className="hw-label text-[8px] mt-0.5">Тактическая система навигации</p>
+            
+            {/* Real-time Data Feed (Desktop) */}
+            <div className="hidden lg:flex items-center gap-8 pl-8 border-l border-hw-border h-12">
+              <div className="space-y-1">
+                <p className="hw-label text-[8px]">Заряд</p>
+                <div className="flex items-center gap-2.5">
+                  <Battery className={cn("w-4 h-4", battery < 20 ? "text-hw-danger animate-pulse" : "text-hw-success")} />
+                  <span className="text-sm font-mono font-bold tracking-tighter">{Math.floor(battery)}%</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="hw-label text-[8px]">Скорость ветра</p>
+                <div className="flex items-center gap-2.5">
+                  <Wind className="w-4 h-4 text-hw-accent-light" />
+                  <span className="text-sm font-mono font-bold tracking-tighter">{weather?.windSpeed ? `${weather.windSpeed} км/ч` : 'ШТИЛЬ'}</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="hw-label text-[8px]">Сигнал</p>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-4 bg-hw-accent rounded-full shadow-[0_0_10px_rgba(0,242,255,0.5)]" />
+                  <div className="w-1.5 h-4 bg-hw-accent rounded-full shadow-[0_0_10px_rgba(0,242,255,0.5)]" />
+                  <div className="w-1.5 h-4 bg-hw-accent rounded-full shadow-[0_0_10px_rgba(0,242,255,0.5)]" />
+                  <div className="w-1.5 h-4 bg-hw-border rounded-full" />
+                </div>
+              </div>
             </div>
           </div>
-          
-          {/* Real-time Data Feed (Desktop) */}
-          <div className="hidden lg:flex items-center gap-6 pl-6 border-l border-hw-border h-10">
-            <div className="space-y-0.5">
-              <p className="hw-label text-[8px]">Заряд</p>
-              <div className="flex items-center gap-2">
-                <Battery className={cn("w-3.5 h-3.5", battery < 20 ? "text-hw-danger animate-pulse" : "text-hw-success")} />
-                <span className="text-xs font-mono font-bold">{Math.floor(battery)}%</span>
-              </div>
-            </div>
-            <div className="space-y-0.5">
-              <p className="hw-label text-[8px]">Скорость ветра</p>
-              <div className="flex items-center gap-2">
-                <Wind className="w-3.5 h-3.5 text-hw-accent-light" />
-                <span className="text-xs font-mono font-bold">{weather?.windSpeed ? `${weather.windSpeed} км/ч` : 'ШТИЛЬ'}</span>
-              </div>
-            </div>
-            <div className="space-y-0.5">
-              <p className="hw-label text-[8px]">Сигнал</p>
-              <div className="flex items-center gap-1">
-                <div className="w-1 h-3 bg-hw-accent rounded-full" />
-                <div className="w-1 h-3 bg-hw-accent rounded-full" />
-                <div className="w-1 h-3 bg-hw-accent rounded-full" />
-                <div className="w-1 h-3 bg-hw-border rounded-full" />
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2">
-            <button 
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="hw-button flex items-center gap-2 bg-hw-border/20 min-w-[80px] justify-center"
-            >
-              {isSyncing ? (
-                <div className="w-3 h-3 border-2 border-hw-accent border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Cloud className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Синхр.</span>
-                </>
-              )}
-            </button>
-            <button className="hw-button flex items-center gap-2 bg-hw-border/20">
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Поделиться</span>
-            </button>
-          </div>
-          <div className="w-px h-8 bg-hw-border mx-2 hidden md:block" />
-          <button className="p-2 hover:bg-hw-border rounded-xl transition-colors text-gray-400 hover:text-white">
-            <Settings className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-3 pl-2">
-            <div className="text-right hidden sm:block">
-              <p className="text-[10px] font-bold leading-none">Кусачий Кот</p>
-              <p className="hw-label text-[8px]">PRO Аккаунт</p>
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-3">
+              <button 
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="hw-button h-10 min-w-[100px] glass-panel hover:bg-hw-accent/10"
+              >
+                {isSyncing ? (
+                  <div className="w-4 h-4 border-2 border-hw-accent border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Cloud className="w-4 h-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Синхр.</span>
+                  </>
+                )}
+              </button>
+              <button className="hw-button h-10 glass-panel hover:bg-hw-accent/10">
+                <Share2 className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Поделиться</span>
+              </button>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-hw-border flex items-center justify-center overflow-hidden border-2 border-hw-border hover:border-hw-accent transition-colors cursor-pointer">
-              <img src="https://picsum.photos/seed/user/40/40" alt="User" referrerPolicy="no-referrer" />
+            <div className="w-px h-10 bg-hw-border mx-2 hidden md:block" />
+            <button className="p-3 glass-panel rounded-xl transition-all hover:text-hw-accent hover:border-hw-accent/30">
+              <Settings className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-4 pl-2">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-black leading-none uppercase tracking-tight">Кусачий Кот</p>
+                <p className="hw-label text-[8px] mt-1">PRO Аккаунт</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl glass-panel p-0.5 border-2 border-hw-border hover:border-hw-accent transition-all duration-500 cursor-pointer group">
+                <div className="w-full h-full rounded-[14px] overflow-hidden relative">
+                  <img src="https://picsum.photos/seed/user/48/48" alt="User" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-hw-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar */}
+      <div className="flex flex-1 overflow-hidden relative p-4 gap-4">
+        {/* Sidebar (Only for Map screen) */}
         <AnimatePresence mode="wait">
-          {isSidebarOpen && (
+          {activeTab === 'map' && isSidebarOpen && (
             <Sidebar
               points={points}
               bikeType={bikeType}
@@ -218,7 +241,7 @@ export default function App() {
               selectedRouteIndex={selectedRouteIndex}
               showPOIs={showPOIs}
               weather={weather}
-              activeTab={activeTab}
+              activeTab={isPlanning ? 'route' : 'guide'}
               onAddPoint={handleAddPoint}
               onUpdatePoint={handleUpdatePoint}
               onRemovePoint={handleRemovePoint}
@@ -228,127 +251,334 @@ export default function App() {
               onClear={handleClear}
               onStartNavigation={() => {
                 setIsNavigating(true);
+                setIsPlanning(false);
                 if (window.innerWidth < 768) {
                   setIsSidebarOpen(false);
-                  setActiveTab('map');
                 }
               }}
               onClose={() => {
                 setIsSidebarOpen(false);
-                setActiveTab('map');
               }}
             />
           )}
         </AnimatePresence>
 
         {/* Main Content Area */}
-        <main className="flex-1 relative overflow-hidden flex flex-col">
-          <div className="flex-1 relative overflow-hidden">
-            {/* Mobile Menu Toggle */}
-            {!isSidebarOpen && !isNavigating && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onClick={() => setIsSidebarOpen(true)}
-                className="flex absolute top-4 left-4 z-[1001] w-12 h-12 bg-hw-surface border border-hw-border rounded-xl items-center justify-center text-white shadow-2xl hover:bg-hw-border transition-all"
-              >
-                <Navigation className="w-6 h-6 rotate-90 text-hw-accent" />
-              </motion.button>
-            )}
+        <main className="flex-1 relative overflow-hidden flex flex-col gap-4">
+          <div className="flex-1 relative overflow-hidden hw-card">
+            {activeTab === 'map' ? (
+              <>
+                {/* Top Bar (Search & Weather) */}
+                {!isNavigating && (
+                  <div className="absolute top-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] md:w-[500px] z-[1001] flex gap-3">
+                    <div className="flex-1 relative group">
+                      <input 
+                        type="text"
+                        placeholder="Куда отправимся?"
+                        className="w-full glass-panel rounded-2xl py-4 px-6 pl-14 text-xs focus:outline-none focus:ring-2 focus:ring-hw-accent/20 transition-all placeholder:text-white/20 font-mono text-white"
+                      />
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-hw-label group-focus-within:text-hw-accent transition-colors" />
+                    </div>
+                    <div className="glass-panel rounded-2xl px-4 flex items-center gap-3">
+                      <Cloud className="w-5 h-5 text-hw-accent" />
+                      <span className="text-[10px] font-black font-mono text-white/80 tracking-tighter">24°C</span>
+                    </div>
+                  </div>
+                )}
 
-            {/* Map */}
-            <Map 
-              points={points} 
-              route={route} 
-              selectedRouteIndex={selectedRouteIndex}
-              showPOIs={showPOIs}
-              isNavigating={isNavigating}
-              onAddPoint={handleAddPoint}
-              onUpdatePoint={handleUpdatePoint}
-              onRemovePoint={handleRemovePoint}
-              onSelectRoute={setSelectedRouteIndex}
-            />
+                {/* Navigation HUD (Top) */}
+                <AnimatePresence>
+                  {isNavigating && (
+                    <motion.div 
+                      initial={{ y: -100, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -100, opacity: 0 }}
+                      className="absolute top-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] md:w-[600px] z-[1002]"
+                    >
+                      <div className="glass-panel rounded-[2.5rem] p-6 flex items-center gap-8 border-hw-accent/30 shadow-[0_0_50px_rgba(0,242,255,0.15)]">
+                        <div className="w-20 h-20 rounded-[2rem] bg-hw-accent flex items-center justify-center text-hw-bg shadow-[0_0_30px_rgba(0,242,255,0.5)] shrink-0">
+                          <ArrowUpRight className="w-10 h-10" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-3">
+                            <span className="text-4xl font-black font-mono tracking-tighter text-white">250</span>
+                            <span className="text-sm font-black uppercase tracking-widest text-hw-accent">метров</span>
+                          </div>
+                          <p className="text-xl font-black uppercase tracking-tight text-white/90">ул. Космонавтов</p>
+                        </div>
+                        <div className="text-right space-y-1 pr-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-hw-label">Прибытие</p>
+                          <p className="text-2xl font-black font-mono tracking-tighter text-white">18:42</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-            {/* Loading Indicator */}
-            <AnimatePresence>
-              {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute top-4 left-1/2 -translate-x-1/2 bg-hw-surface/90 backdrop-blur-md border border-hw-border px-4 py-2 rounded-full flex items-center gap-3 z-[1002] shadow-2xl"
-                >
-                  <div className="w-4 h-4 border-2 border-hw-accent border-t-transparent rounded-full animate-spin" />
-                  <span className="hw-label text-[9px]">Расчет маршрута...</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                {/* Map Tools (Right Side) */}
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 z-[1001] flex flex-col gap-4">
+                  {/* Layer Button */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowLayerMenu(!showLayerMenu)}
+                      className={cn(
+                        "w-14 h-14 glass-panel rounded-2xl flex items-center justify-center transition-all duration-500 hover:scale-110",
+                        showLayerMenu ? "bg-hw-accent text-hw-bg shadow-[0_0_20px_rgba(0,242,255,0.3)]" : "text-hw-label hover:text-white"
+                      )}
+                    >
+                      <Layers className="w-6 h-6" />
+                    </button>
+                    <AnimatePresence>
+                      {showLayerMenu && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="absolute right-20 top-0 glass-panel p-3 rounded-2xl min-w-[180px] space-y-2 border-hw-accent/20"
+                        >
+                          <p className="text-[8px] font-black uppercase tracking-widest text-hw-label px-2 mb-2">Слои карты</p>
+                          {[
+                            { id: 'satellite', label: 'Спутник', icon: Cloud },
+                            { id: 'street', label: 'Улицы', icon: MapIcon },
+                            { id: 'topo', label: 'Рельеф', icon: TrendingUp }
+                          ].map(style => (
+                            <button 
+                              key={style.id}
+                              onClick={() => { setMapStyle(style.id as any); setShowLayerMenu(false); }}
+                              className={cn(
+                                "w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                                mapStyle === style.id ? "bg-hw-accent/20 text-hw-accent" : "hover:bg-white/5 text-white/60"
+                              )}
+                            >
+                              <style.icon className="w-4 h-4" /> {style.label}
+                            </button>
+                          ))}
+                          <div className="h-px bg-white/10 my-2" />
+                          <button 
+                            onClick={() => setShowPOIs(!showPOIs)}
+                            className={cn(
+                              "w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                              showPOIs ? "text-hw-success" : "text-white/40"
+                            )}
+                          >
+                            <Coffee className="w-4 h-4" /> Точки интереса
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
-            {/* Elevation Profile */}
-            {currentRoute && !isNavigating && activeTab === 'map' && (
-              <ElevationProfile 
-                data={currentRoute.elevationProfile} 
-                instructions={currentRoute.instructions}
-              />
+                  {/* Planning Toggle */}
+                  {!isNavigating && (
+                    <button 
+                      onClick={() => {
+                        setIsPlanning(!isPlanning);
+                        if (!isPlanning) setIsSidebarOpen(true);
+                      }}
+                      className={cn(
+                        "w-14 h-14 glass-panel rounded-2xl flex items-center justify-center transition-all duration-500 hover:scale-110",
+                        isPlanning ? "bg-hw-accent text-hw-bg shadow-[0_0_20px_rgba(0,242,255,0.3)]" : "text-hw-label hover:text-white"
+                      )}
+                    >
+                      <Edit3 className="w-6 h-6" />
+                    </button>
+                  )}
+
+                  {/* Route Menu (Three Dots) */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowRouteMenu(!showRouteMenu)}
+                      className={cn(
+                        "w-14 h-14 glass-panel rounded-2xl flex items-center justify-center transition-all duration-500 hover:scale-110",
+                        showRouteMenu ? "bg-hw-accent text-hw-bg shadow-[0_0_20px_rgba(0,242,255,0.3)]" : "text-hw-label hover:text-white"
+                      )}
+                    >
+                      <MoreVertical className="w-6 h-6" />
+                    </button>
+                    <AnimatePresence>
+                      {showRouteMenu && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="absolute right-20 bottom-0 glass-panel p-3 rounded-2xl min-w-[180px] space-y-2 border-hw-accent/20"
+                        >
+                          <button className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white/60 hover:bg-white/5 hover:text-white transition-all">
+                            <Download className="w-4 h-4" /> Сохранить
+                          </button>
+                          <button className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white/60 hover:bg-white/5 hover:text-white transition-all">
+                            <Share2 className="w-4 h-4" /> Поделиться
+                          </button>
+                          <button onClick={handleClear} className="w-full flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-hw-danger hover:bg-hw-danger/10 transition-all">
+                            <Trash2 className="w-4 h-4" /> Удалить
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* Planning Toolbar (Bottom Center) */}
+                <AnimatePresence>
+                  {isPlanning && (
+                    <motion.div 
+                      initial={{ y: 100, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: 100, opacity: 0 }}
+                      className="absolute bottom-32 left-1/2 -translate-x-1/2 z-[1001]"
+                    >
+                      <div className="glass-panel rounded-3xl p-2 flex gap-2 border-hw-accent/30 shadow-[0_0_40px_rgba(0,242,255,0.1)]">
+                        {[
+                          { id: 'add', icon: Plus, label: 'Добавить' },
+                          { id: 'move', icon: Move, label: 'Переместить' },
+                          { id: 'delete', icon: Trash2, label: 'Удалить' }
+                        ].map(tool => (
+                          <button
+                            key={tool.id}
+                            onClick={() => setActiveTool(tool.id as any)}
+                            className={cn(
+                              "flex flex-col items-center justify-center w-20 h-20 rounded-2xl transition-all duration-500 gap-2",
+                              activeTool === tool.id ? "bg-hw-accent text-hw-bg shadow-[0_0_20px_rgba(0,242,255,0.3)]" : "text-hw-label hover:text-white hover:bg-white/5"
+                            )}
+                          >
+                            <tool.icon className="w-6 h-6" />
+                            <span className="text-[8px] font-black uppercase tracking-widest">{tool.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Navigation HUD (Bottom Quick Access) */}
+                <AnimatePresence>
+                  {isNavigating && (
+                    <motion.div 
+                      initial={{ y: 100, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: 100, opacity: 0 }}
+                      className="absolute bottom-32 left-1/2 -translate-x-1/2 z-[1002]"
+                    >
+                      <div className="glass-panel rounded-[2.5rem] p-3 flex gap-4 border-hw-accent/30 shadow-[0_0_40px_rgba(0,242,255,0.1)]">
+                        <button 
+                          onClick={() => setIsNavigating(false)}
+                          className="w-16 h-16 rounded-full bg-hw-danger/20 text-hw-danger flex items-center justify-center hover:bg-hw-danger hover:text-white transition-all shadow-[0_0_20px_rgba(255,59,48,0.2)]"
+                        >
+                          <X className="w-8 h-8" />
+                        </button>
+                        <button className="w-16 h-16 rounded-full bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all">
+                          <Coffee className="w-8 h-8" />
+                        </button>
+                        <button className="w-16 h-16 rounded-full bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all">
+                          <Settings className="w-8 h-8" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Map */}
+                <Map 
+                  points={points} 
+                  route={route} 
+                  selectedRouteIndex={selectedRouteIndex}
+                  showPOIs={showPOIs}
+                  isNavigating={isNavigating}
+                  activeTool={activeTool}
+                  mapStyle={mapStyle}
+                  onAddPoint={handleAddPoint}
+                  onUpdatePoint={handleUpdatePoint}
+                  onRemovePoint={handleRemovePoint}
+                  onSelectRoute={setSelectedRouteIndex}
+                />
+
+                {/* Loading Indicator */}
+                <AnimatePresence>
+                  {isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="absolute top-6 left-1/2 -translate-x-1/2 glass-panel px-6 py-3 rounded-full flex items-center gap-4 z-[1002] shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                    >
+                      <div className="w-5 h-5 border-2 border-hw-accent border-t-transparent rounded-full animate-spin" />
+                      <span className="hw-label text-[10px] tracking-[0.2em]">Расчет маршрута...</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Elevation Profile */}
+                {currentRoute && !isNavigating && (
+                  <div className="absolute bottom-6 inset-x-6 z-[1002]">
+                    <ElevationProfile 
+                      data={currentRoute.elevationProfile} 
+                      instructions={currentRoute.instructions}
+                    />
+                  </div>
+                )}
+              </>
+            ) : activeTab === 'routes' ? (
+              <RoutesScreen onSelectRoute={(r) => {
+                // Load mock points for the selected route
+                setPoints([
+                  { lat: 55.7558, lng: 37.6173 },
+                  { lat: 55.7512, lng: 37.6184 },
+                  { lat: 55.7489, lng: 37.6256 }
+                ]);
+                setActiveTab('map');
+                setIsPlanning(false);
+              }} />
+            ) : activeTab === 'stats' ? (
+              <StatsScreen />
+            ) : (
+              <SettingsScreen />
             )}
           </div>
         </main>
       </div>
 
-      {/* Bottom Dock (Mobile Only) */}
+      {/* Bottom Dock */}
       {!isNavigating && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-hw-surface border-t border-hw-border flex items-center justify-around px-6 z-[1003]">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 h-20 glass-panel rounded-3xl flex items-center justify-around px-8 z-[1003] min-w-[320px] md:min-w-[400px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           <button
-            onClick={() => {
-              setActiveTab('map');
-              setIsSidebarOpen(false);
-            }}
+            onClick={() => setActiveTab('map')}
             className={cn(
               "flex flex-col items-center gap-1 transition-all duration-300",
-              activeTab === 'map' ? "text-hw-accent scale-110" : "text-gray-500"
+              activeTab === 'map' ? "text-hw-accent scale-110" : "text-white/30 hover:text-white/60"
             )}
           >
             <Compass className="w-6 h-6" />
-            <span className="hw-label text-[8px]">Карта</span>
+            <span className="hw-label text-[8px] font-black uppercase tracking-widest">Карта</span>
           </button>
           <button
-            onClick={() => {
-              setActiveTab('route');
-              setIsSidebarOpen(true);
-            }}
+            onClick={() => setActiveTab('routes')}
             className={cn(
               "flex flex-col items-center gap-1 transition-all duration-300",
-              activeTab === 'route' ? "text-hw-accent scale-110" : "text-gray-500"
+              activeTab === 'routes' ? "text-hw-accent scale-110" : "text-white/30 hover:text-white/60"
             )}
           >
-            <MapPin className="w-6 h-6" />
-            <span className="hw-label text-[8px]">Маршрут</span>
+            <MapIcon className="w-6 h-6" />
+            <span className="hw-label text-[8px] font-black uppercase tracking-widest">Маршруты</span>
           </button>
           <button
-            onClick={() => {
-              setActiveTab('guide');
-              setIsSidebarOpen(true);
-            }}
+            onClick={() => setActiveTab('stats')}
             className={cn(
               "flex flex-col items-center gap-1 transition-all duration-300",
-              activeTab === 'guide' ? "text-hw-accent scale-110" : "text-gray-500"
-            )}
-          >
-            <List className="w-6 h-6" />
-            <span className="hw-label text-[8px]">Гайд</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('stats');
-              setIsSidebarOpen(true);
-            }}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all duration-300",
-              activeTab === 'stats' ? "text-hw-accent scale-110" : "text-gray-500"
+              activeTab === 'stats' ? "text-hw-accent scale-110" : "text-white/30 hover:text-white/60"
             )}
           >
             <TrendingUp className="w-6 h-6" />
-            <span className="hw-label text-[8px]">Статы</span>
+            <span className="hw-label text-[8px] font-black uppercase tracking-widest">Статы</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all duration-300",
+              activeTab === 'settings' ? "text-hw-accent scale-110" : "text-white/30 hover:text-white/60"
+            )}
+          >
+            <Settings className="w-6 h-6" />
+            <span className="hw-label text-[8px] font-black uppercase tracking-widest">Опции</span>
           </button>
         </div>
       )}
