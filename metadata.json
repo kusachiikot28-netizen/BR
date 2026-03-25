@@ -1,0 +1,5 @@
+{
+  "name": "BikeRoute Navigator",
+  "description": "Bicycle navigation and route planning app using open APIs (OSM, ORS). Features elevation profiles, bike-specific routing, and real-time trip stats.",
+  "requestFramePermissions": ["geolocation"]
+}
