@@ -1,4 +1,4 @@
-import { Bike, MapPin, Trash2, Plus, Navigation, TrendingUp, Clock, Ruler, ChevronRight, Settings, Info, Coffee, Search, Cloud, Wind as WindIcon, FileText } from 'lucide-react';
+import { Bike, MapPin, Trash2, Plus, Navigation, TrendingUp, Clock, Ruler, ChevronRight, Settings, Info, Coffee, Search, Cloud, Wind as WindIcon, FileText, Download } from 'lucide-react';
 import { BikeType, RoutePoint, RouteInfo } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -6,6 +6,7 @@ import { twMerge } from 'tailwind-merge';
 import { useState } from 'react';
 import { searchLocation } from '../services/geocoding';
 import { WeatherInfo } from '../services/weather';
+import { exportToGPX } from '../services/export';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -239,6 +240,15 @@ export default function Sidebar({
               <span className="text-xs font-medium">Добавить точку</span>
             </button>
           )}
+
+          {points.length > 0 && !route && (
+            <button
+              onClick={onClear}
+              className="w-full py-2 text-[10px] text-gray-500 hover:text-red-500 uppercase tracking-widest font-mono transition-colors"
+            >
+              Очистить все точки
+            </button>
+          )}
         </div>
       </div>
 
@@ -276,11 +286,25 @@ export default function Sidebar({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onStartNavigation}
+              className="py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+            >
+              ПОЕХАЛИ <ChevronRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => exportToGPX(route)}
+              className="py-4 bg-[#2a2b2e] hover:bg-[#3a3b3e] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+            >
+              GPX <Download className="w-5 h-5" />
+            </button>
+          </div>
           <button
-            onClick={onStartNavigation}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+            onClick={onClear}
+            className="w-full py-2 text-[10px] text-gray-500 hover:text-red-500 uppercase tracking-widest font-mono transition-colors"
           >
-            ПОЕХАЛИ <ChevronRight className="w-5 h-5" />
+            Очистить маршрут
           </button>
         </motion.div>
       )}
